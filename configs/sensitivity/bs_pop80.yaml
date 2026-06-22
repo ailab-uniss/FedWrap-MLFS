@@ -1,0 +1,18 @@
+# Sensitivity: bitstring genotype, pop_size = 80
+seed: 42
+dataset: { kind: prefold, root: data/dense_benchmark_v3, name: Emotions }
+cross_validation: { enabled: true, n_folds: 5 }
+model: { kind: mlknn, k: 5, s: 1.0, mlknn_backend: torch, mlknn_device: cuda }
+evolution:
+  pop_size: 80
+  crossover_prob: 0.9
+  mutation_prob: 0.5
+  max_evals_per_feature: 100
+  genotype: bitstring
+  early_stopping: { enabled: true, mode: window, window: 10, rel_tol: 0.002, patience: 2 }
+bitstring: { init_prob: 0.1 }
+objectives:
+  names: [one_minus_macro_f1, one_minus_micro_f1, feature_ratio]
+  hv_ref: { 0: 1.0, 1: 1.0, 2: 1.0 }
+logging: { out_dir: runs/repro/sensitivity/bs_pop80 }
+reporting: { budget_mode: count, budget_step: 1, max_feature_ratio: 0.25 }

@@ -1,0 +1,60 @@
+# Smoke test — runs in a few seconds (tiny budget, 1 fold, small dataset).
+seed: 42
+
+dataset:
+  kind: prefold
+  root: data/dense_benchmark_v3
+  name: Emotions
+
+cross_validation:
+  enabled: true
+  n_folds: 5
+
+model:
+  kind: mlknn
+  k: 5
+  s: 1.0
+  mlknn_backend: auto
+  mlknn_device: auto
+
+evolution:
+  pop_size: 10
+  crossover_prob: 0.9
+  mutation_prob: 0.5
+  max_evals: 200
+  genotype: hypergraph
+  early_stopping:
+    enabled: false
+
+objectives:
+  names:
+    - one_minus_macro_f1
+    - one_minus_micro_f1
+    - feature_ratio
+  hv_ref:
+    0: 1.0
+    1: 1.0
+    2: 1.0
+
+hypergraph:
+  construction: multilayer_label
+  target_feature_ratio: 0.25
+  min_feature_ratio: 0.03
+  fl_relevance: mi
+  init_edge_prob: 0.3
+  edge_prune_prob: 0.1
+  injection_prob: 0.3
+  feature_cluster_edges: auto
+  graph_contraction_threshold: 0.70
+  fl_topm_ratio: 0.15
+  fl_topm_min: 3
+  mutation_routing_swap: 0.40
+  mutation_routing_inject: 0.20
+
+logging:
+  out_dir: runs/repro/smoke
+
+reporting:
+  budget_mode: count
+  budget_step: 1
+  max_feature_ratio: 0.25

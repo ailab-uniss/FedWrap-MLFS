@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fedwrap-mlfs"
+version = "1.0.0"
+description = "FedWrap-MLFS: a federation-aware wrapper workflow for multi-objective multi-label feature selection in the compute continuum"
+requires-python = ">=3.10"
+dependencies = [
+  "numpy>=1.24",
+  "scipy>=1.10",
+  "scikit-learn>=1.3",
+  "pyyaml>=6.0",
+]
+
+[project.optional-dependencies]
+gpu = ["torch>=2.0"]                          # optional GPU ML-kNN backend (cupy must match your CUDA)
+workflow = ["cwltool>=3.1", "streamflow"]     # to run the CWL / StreamFlow workflow
+data = ["scikit-multilearn>=0.2"]             # optional, for some dataset loaders
+
+[tool.setuptools]
+include-package-data = false
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["fedwrap*"]
+exclude = ["data*", "runs*", "reports*", "logs*", "scripts*", "paper*", "workflow*"]

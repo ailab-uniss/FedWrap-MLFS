@@ -1,0 +1,32 @@
+# StreamFlow deployment binding: run the FedWrap-MLFS federated-evaluation workflow LOCALLY,
+# each client/aggregate step in the fedwrap-workflow Docker image.
+#
+#   streamflow run workflow/streamflow-local.yml
+#
+# The CWL (workflow/cwl/fed_eval.cwl) is identical to the SLURM run; only this binding changes.
+# (The CWL is also runnable directly, without StreamFlow, via: cwltool workflow/cwl/fed_eval.cwl
+#  workflow/job_ecg.yml --- which is how we validated it.)
+#
+# Schema targets StreamFlow >= 0.2 (the `deployments` schema). Adapt key names if your installed
+# StreamFlow differs (e.g. 0.1.x uses `models` instead of `deployments`).
+version: v1.0
+
+workflows:
+  fedwrap:
+    type: cwl
+    config:
+      file: cwl/fed_eval.cwl
+      settings: ../job_ecg.yml
+    bindings:
+      - step: /client_eval
+        target:
+          deployment: local-docker
+      - step: /aggregate
+        target:
+          deployment: local-docker
+
+deployments:
+  local-docker:
+    type: docker
+    config:
+      image: fedwrap-workflow:latest

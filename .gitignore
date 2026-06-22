@@ -1,0 +1,14 @@
+# data and generated artifacts (not committed)
+data/
+runs/
+reports/
+logs/
+out/
+*.sif
+workflow/shards/
+# python
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+# latex build artifacts

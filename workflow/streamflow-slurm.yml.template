@@ -1,0 +1,58 @@
+# TEMPLATE --- run the SAME FedWrap-MLFS workflow on an HPC cluster via SLURM + Singularity.
+# Fill in the <PLACEHOLDERS> for your cluster and rename to streamflow-slurm.yml, then:
+#
+#   singularity build fedwrap-workflow.sif docker-daemon://fedwrap-workflow:latest   # once
+#   streamflow run workflow/streamflow-slurm.yml
+#
+# The CWL (cwl/fed_eval.cwl) is UNCHANGED from the local run; only this binding changes --- which is
+# the whole point of expressing the method as a portable workflow. Each client step becomes one SLURM
+# job running the Singularity image on a compute node; StreamFlow stages the shard/mask/counter files
+# over the cluster's shared filesystem, so no live inter-node networking is required.
+#
+# Schema targets StreamFlow >= 0.2. Connectors compose with `wraps`: singularity -> slurm -> ssh.
+# Consult the StreamFlow docs for your version; key names (services/queue fields) may differ slightly.
+version: v1.0
+
+workflows:
+  fedwrap:
+    type: cwl
+    config:
+      file: cwl/fed_eval.cwl
+      settings: ../job_ecg.yml      # use a job pointing at shards staged on the cluster filesystem
+    bindings:
+      - step: /client_eval
+        target:
+          deployment: hpc-singularity
+      - step: /aggregate
+        target:
+          deployment: hpc-singularity
+
+deployments:
+  # 1) SSH to the cluster login/submission node (handles VPN/2FA outside StreamFlow).
+  hpc-login:
+    type: ssh
+    config:
+      nodes: ["<LOGIN_HOSTNAME>"]
+      username: "<USERNAME>"
+      sshKey: "<PATH_TO_SSH_KEY>"
+
+  # 2) SLURM submits each step as a batch job through the SSH deployment.
+  hpc-slurm:
+    type: slurm
+    wraps: hpc-login
+    config:
+      services:
+        fedwrap:
+          partition: "<PARTITION>"
+          nodes: 1
+          ntasks: 1
+          cpusPerTask: 4          # a client step is CPU-only and light (a few GB RAM)
+          time: "01:00:00"
+          # account: "<PROJECT_ACCOUNT>"   # uncomment if your scheduler requires it
+
+  # 3) Singularity provides the container on the compute node (same image as local Docker).
+  hpc-singularity:
+    type: singularity
+    wraps: hpc-slurm
+    config:
+      image: "<PATH_ON_CLUSTER>/fedwrap-workflow.sif"
