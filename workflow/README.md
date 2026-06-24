@@ -59,7 +59,7 @@ To run on your **own dataset** instead, place a prefold under `data/fed_real/<na
 shards (synthetic or public data only --- not eICU on shared infra):
 `python workflow/prepare_shards.py --dataset <name> --root data/fed_real --out workflow/shards`.
 
-## Run on an HPC cluster (Folino)
+## Run on an HPC cluster
 
 The cluster needs **SLURM** (or PBS/Flux), **Singularity/Apptainer**, and a **shared filesystem**
 visible to the compute nodes. No live inter-node networking is required: StreamFlow stages the
