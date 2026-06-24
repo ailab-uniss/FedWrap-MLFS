@@ -36,23 +36,28 @@ the resource-aware scheduler also relies on.)
 
 ## Run locally
 
+A small **synthetic federation is bundled** (`data/synth_demo/`, 8 silos, $D{=}100$, with feature
+interactions) together with prebuilt shards in `workflow/shards/synth_demo/`, so this demo runs
+straight from a clean clone --- no data download.
+
 ```bash
 # 1. build the step image
 docker build -f workflow/Dockerfile -t fedwrap-workflow:latest .
 
-# 2. materialize per-silo shards (use synthetic or public datasets on shared infra; not eICU)
-python workflow/prepare_shards.py --dataset ECG_cinc2021 --root data/fed_real --out workflow/shards
+# 2. build the CWL job (bundled demo mask = the true informative subset)
+python workflow/make_job.py workflow/shards/synth_demo workflow/mask_synth_demo.npy > workflow/job_demo.yml
 
-# 3. pick a mask (any boolean .npy of length D) and build the CWL job
-python workflow/make_job.py workflow/shards/ECG_cinc2021 workflow/mask.npy > workflow/job_ecg.yml
+# 3a. run with cwltool (reference CWL runner --- this is the validated path)
+cwltool --outdir out workflow/cwl/fed_eval.cwl workflow/job_demo.yml
+cat out/global.json          # exact global micro/macro-F1 aggregated across silos
 
-# 4a. run with cwltool (reference CWL runner --- this is the validated path)
-cwltool --outdir out workflow/cwl/fed_eval.cwl workflow/job_ecg.yml
-cat out/global.json
-
-# 4b. or run with StreamFlow using the local Docker binding
+# 3b. or run with StreamFlow using the local Docker binding
 streamflow run workflow/streamflow-local.yml
 ```
+
+To run on your **own dataset** instead, place a prefold under `data/fed_real/<name>/` and build its
+shards (synthetic or public data only --- not eICU on shared infra):
+`python workflow/prepare_shards.py --dataset <name> --root data/fed_real --out workflow/shards`.
 
 ## Run on an HPC cluster (Folino)
 

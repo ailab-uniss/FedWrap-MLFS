@@ -1,0 +1,65 @@
+{
+  "dataset": "synth_demo",
+  "n_features": 100,
+  "n_labels": 12,
+  "n_clients": 8,
+  "val_fraction": 0.25,
+  "clients": [
+    {
+      "client_id": 0,
+      "group": "0",
+      "n_train": 147,
+      "n_val": 49,
+      "file": "client_0.npz"
+    },
+    {
+      "client_id": 1,
+      "group": "1",
+      "n_train": 141,
+      "n_val": 47,
+      "file": "client_1.npz"
+    },
+    {
+      "client_id": 2,
+      "group": "2",
+      "n_train": 133,
+      "n_val": 44,
+      "file": "client_2.npz"
+    },
+    {
+      "client_id": 3,
+      "group": "3",
+      "n_train": 150,
+      "n_val": 50,
+      "file": "client_3.npz"
+    },
+    {
+      "client_id": 4,
+      "group": "4",
+      "n_train": 119,
+      "n_val": 39,
+      "file": "client_4.npz"
+    },
+    {
+      "client_id": 5,
+      "group": "5",
+      "n_train": 146,
+      "n_val": 48,
+      "file": "client_5.npz"
+    },
+    {
+      "client_id": 6,
+      "group": "6",
+      "n_train": 150,
+      "n_val": 50,
+      "file": "client_6.npz"
+    },
+    {
+      "client_id": 7,
+      "group": "7",
+      "n_train": 141,
+      "n_val": 47,
+      "file": "client_7.npz"
+    }
+  ]
+}

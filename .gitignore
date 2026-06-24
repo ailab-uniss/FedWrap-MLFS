@@ -1,11 +1,13 @@
 # data and generated artifacts (not committed)
-data/
+data/*
+!data/synth_demo/
 runs/
 reports/
 logs/
 out/
 *.sif
-workflow/shards/
+workflow/shards/*
+!workflow/shards/synth_demo/
 # python
 __pycache__/
 *.py[cod]
