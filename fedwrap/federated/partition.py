@@ -1,6 +1,6 @@
 """Federated partitioning of multi-label datasets into virtual clients.
 
-Implements the partition scenarios required by the Fed-CC-FedWrap-MLFS research plan
+Implements the partition scenarios required by the FedWrap-MLFS
 (section 12):
 
 - ``iid``                   : random split (experimental control).

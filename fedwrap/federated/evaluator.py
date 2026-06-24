@@ -1,16 +1,14 @@
 """Server-side federated evaluator: a drop-in replacement for ml_eval.Evaluator.
 
-It exposes the same surface used by the (CC and non-CC) experiment runners --
+It exposes the same surface used by the experiment runners --
 ``evaluate_mask(mask) -> (objectives, MLResult)``, ``batch_evaluate_masks`` and a
 ``_cache`` keyed by ``mask.tobytes()`` -- but computes the objectives via
 *federated evaluation*: the mask is broadcast to virtual clients, each returns
 label-wise TP/FP/FN on its local validation set, and the server aggregates them
 into GLOBAL micro/macro F1 (never an average of local F1 scores).
 
-Elitism-safety (research plan, section 8.3): only ``mode="full"`` results enter
-``_cache`` and may be promoted by the caller into the Pareto archive / context
-bank. ``mode="bite"`` results are returned with a temporary, non-persistent
-score and are kept in a separate, clearable cache.
+Evaluations are cached (elitism-safe, persistent, keyed by the mask) and may be promoted by the
+caller into the Pareto archive.
 """
 from __future__ import annotations
 
@@ -36,7 +34,6 @@ class FederatedConfig:
     dirichlet_alpha: float = 0.3
     min_samples_per_client: int = 16
     size_distribution: str = "lognormal"
-    client_fraction_bite: float = 0.30
     client_fraction_full: float = 1.0
     final_eval_all_clients: bool = True
     return_client_metrics: bool = True
@@ -154,14 +151,10 @@ class FederatedEvaluator:
 
         # Full-eval cache (elitism-safe, persistent). Keyed by mask.tobytes().
         self._cache: dict[bytes, tuple[np.ndarray, MLResult]] = {}
-        self._bite_cache: dict[bytes, tuple[np.ndarray, MLResult]] = {}
         # Per-mask aggregated client stats from the last full evaluation.
         self._stats_cache: dict[bytes, AggregatedStats] = {}
 
-        self.counters = {
-            "full_evals": 0, "bite_evals": 0,
-            "full_cache_hits": 0, "bite_cache_hits": 0,
-        }
+        self.counters = {"full_evals": 0, "full_cache_hits": 0}
 
         # Persistent thread pool for client-level parallelism. Created once and
         # reused across the (thousands of) evaluate_mask calls to avoid per-call
@@ -192,9 +185,7 @@ class FederatedEvaluator:
 
     def _sample_clients(self, client_fraction: float | None, mode: str) -> list[FederatedClient]:
         if client_fraction is None:
-            client_fraction = (
-                self.fed.client_fraction_full if mode == "full" else self.fed.client_fraction_bite
-            )
+            client_fraction = self.fed.client_fraction_full
         cf = float(client_fraction)
         if cf >= 1.0 or mode == "full" and self.fed.final_eval_all_clients and cf >= 1.0:
             return self.clients
@@ -208,32 +199,25 @@ class FederatedEvaluator:
         feature_mask: np.ndarray,
         mode: str = "full",
         client_fraction: float | None = None,
-        bite_seed: int | None = None,
     ) -> tuple[np.ndarray, MLResult]:
         mask = np.asarray(feature_mask, dtype=bool)
         key = mask.tobytes()
 
-        if mode == "full":
-            if key in self._cache:
-                self.counters["full_cache_hits"] += 1
-                return self._cache[key]
-        else:
-            if key in self._bite_cache:
-                self.counters["bite_cache_hits"] += 1
-                return self._bite_cache[key]
+        if key in self._cache:
+            self.counters["full_cache_hits"] += 1
+            return self._cache[key]
 
         clients = self._sample_clients(client_fraction, mode)
-        cmode = "bite" if mode == "bite" else "full"
         if self._pool is not None and len(clients) >= self._parallel_min_clients:
             # Reuse the persistent thread pool; clients are independent and their
             # ML-kNN releases the GIL.
             local_results = list(self._pool.map(
-                lambda c: c.evaluate_mask(mask, mode=cmode, bite_seed=bite_seed),
+                lambda c: c.evaluate_mask(mask, mode="full"),
                 clients,
             ))
         else:
             local_results = [
-                c.evaluate_mask(mask, mode=cmode, bite_seed=bite_seed)
+                c.evaluate_mask(mask, mode="full")
                 for c in clients
             ]
         stats = self.aggregator.aggregate(local_results)
@@ -245,13 +229,9 @@ class FederatedEvaluator:
         if self.fed.estimate_communication:
             self.comm.record_round(int(mask.sum()), len(clients))
 
-        if mode == "full":
-            self.counters["full_evals"] += 1
-            self._cache[key] = (objectives, ml)
-            self._stats_cache[key] = stats
-        else:
-            self.counters["bite_evals"] += 1
-            self._bite_cache[key] = (objectives, ml)
+        self.counters["full_evals"] += 1
+        self._cache[key] = (objectives, ml)
+        self._stats_cache[key] = stats
         return objectives, ml
 
     # ------------------------------------------------------------------

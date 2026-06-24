@@ -1,9 +1,9 @@
 """Headline FedAware evidence on the synthetic federated benchmark: does the federation-aware
 search beat a federation-naive NSGA-II, and does its advantage grow with heterogeneity?
 
-For each sweep point and seed we run TWO selectors at full evaluation budget (bites off):
+For each sweep point and seed we run TWO selectors at full evaluation budget:
   base    : plain federated NSGA-II wrapper (federation-naive search)
-  fedaware: FedAware-NSGA-II (client-stratified bite off here; stability tie-break + disagreement-
+  fedaware: FedAware-NSGA-II (stability tie-break + disagreement-
             guided mutation on) -- the headline configuration
 and record global macro-F1 and worst-client macro-F1 for each, plus fed-rank / all-features
 references at matched sparsity. Sweeps that stress the federation (K, non-IID alpha) are where the
@@ -41,7 +41,6 @@ def run_selector(name, nclients, seed, fedaware):
     setk(cfg, "evolution.early_stopping", {"enabled": True, "mode": "window", "window": 10, "rel_tol": 0.002, "patience": 3})
     setk(cfg, "fedaware.enabled", bool(fedaware))
     setk(cfg, "fedaware.stability_tiebreak", True); setk(cfg, "fedaware.disagreement_mutation", True)
-    setk(cfg, "bites.enabled", False)
     setk(cfg, "federated", {"enabled": True, "n_clients": nclients, "partition": "natural_silo",
           "min_samples_per_client": 16, "client_fraction_full": 1.0, "final_eval_all_clients": True,
           "return_client_metrics": True, "n_jobs": 8})

@@ -1,7 +1,6 @@
 """Analytical communication-cost estimator for the simulated federation.
 
-For a single-workstation simulation the byte counts are estimated analytically
-(research plan, section 15.4):
+For a single-workstation simulation the byte counts are estimated analytically:
 
 - server -> client : the feature mask. Either ``n_features`` bits (dense bitmask)
   or a list of selected indices (4 bytes each), whichever is smaller.

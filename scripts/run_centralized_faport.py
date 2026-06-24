@@ -29,7 +29,7 @@ DS = sys.argv[1] if len(sys.argv) > 1 else "eICU_expl_k12"
 SEEDS = [int(s) for s in sys.argv[2].split(",")] if len(sys.argv) > 2 else [0, 1, 2]
 
 for seed in SEEDS:
-    out = f"runs/centralized_warm/{DS}_s{seed}"
+    out = f"runs/centralized_faport/{DS}_s{seed}"
     if Path(out + "_fold0", "population_masks.npz").exists():
         print(f"skip {out}", flush=True); continue
     cfg = copy.deepcopy(BASE); setk(cfg, "seed", seed)
@@ -43,7 +43,7 @@ for seed in SEEDS:
     setk(cfg, "evolution.early_stopping", {"enabled": True, "mode": "window", "window": 10, "rel_tol": 0.002, "patience": 3})
     setk(cfg, "fedaware.enabled", True); setk(cfg, "fedaware.stability_tiebreak", True)
     setk(cfg, "fedaware.disagreement_mutation", True); setk(cfg, "fedaware.relevance_warmstart", True)
-    setk(cfg, "fedaware.warmstart_frac", 0.3)
+    setk(cfg, "fedaware.warmstart_frac", 0.3); setk(cfg, "fedaware.filter_seed", True); setk(cfg, "fedaware.swap_prob", 0.4)
     # pooled = federation with a single client (centralized objective, same selector machinery)
     setk(cfg, "federated", {"enabled": True, "n_clients": 1, "partition": "iid",
          "min_samples_per_client": 32, "client_fraction_full": 1.0, "final_eval_all_clients": True,

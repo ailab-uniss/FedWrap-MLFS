@@ -80,7 +80,6 @@ def run_fedwrap(name, nclients, seed, method="fedaware"):
     setk(cfg, "fedaware.enabled", method == "fedaware")
     setk(cfg, "fedaware.stability_tiebreak", True); setk(cfg, "fedaware.disagreement_mutation", True)
     setk(cfg, "fedaware.relevance_warmstart", method == "fedaware"); setk(cfg, "fedaware.warmstart_frac", 0.3)
-    setk(cfg, "bites.enabled", False)
     setk(cfg, "federated", {"enabled": True, "n_clients": nclients, "partition": "natural_silo",
           "min_samples_per_client": 16, "client_fraction_full": 1.0, "final_eval_all_clients": True,
           "return_client_metrics": True, "estimate_communication": True, "n_jobs": 8})
@@ -143,7 +142,8 @@ def main():
             dpath = f"data/synth_scaling/{name}"
             shape, _, K = materialize(dpath, N=p["N"], D=p["D"], L=p["L"], K=p["K"],
                 informative_ratio=p["informative_ratio"], noise=p["noise"], alpha=p["alpha"],
-                n_informative=p["n_informative"], seed=seed)
+                n_informative=p["n_informative"], seed=seed,
+                interaction_frac=float(os.environ.get("SC_INTERACTION", 0.0)))
             D = p["D"]; L = p["L"]
             try:
                 rundir, walltime = run_fedwrap(name, K, seed, method=method)

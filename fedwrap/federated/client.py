@@ -3,11 +3,7 @@
 A client owns its local train/validation data and never exposes it. Given a
 feature mask it trains a local ML-kNN model on the selected features and returns
 only label-wise sufficient statistics (TP/FP/FN per label) plus a few counters.
-
-The client is intentionally oblivious to cooperative coevolution, the bridge
-block and the context bank (research plan, section 6): it only knows
-``receive mask -> evaluate locally -> return statistics``. This lets the same
-client back both the non-CC and the CC server.
+The client only knows ``receive mask -> evaluate locally -> return statistics``.
 """
 from __future__ import annotations
 
@@ -34,9 +30,6 @@ class ClientEvalConfig:
     # held-out), summing TP/FP/FN over folds. This makes the search objective robust and
     # avoids overfitting a single small validation split. cv_folds=1 keeps the single split.
     cv_folds: int = 1
-    # Bite (local sub-sampling) configuration
-    bite_train_fraction: float = 0.20
-    bite_val_fraction: float = 0.35
     # Adaptive backend: dense masks (many selected features) are much faster on
     # GPU, sparse masks faster on CPU (GPU transfer overhead dominates). When
     # mlknn_backend == "adaptive" we pick per-evaluation by selected-feature count.
@@ -170,36 +163,17 @@ class FederatedClient:
             "eval_time": 0.0,
         }
 
-    def _build_local_bite(self, bite_seed: int | None):
-        rng = np.random.default_rng(bite_seed if bite_seed is not None else 0)
-        ntr = self.n_train
-        nva = self.n_val
-        ktr = max(1, int(round(self.cfg.bite_train_fraction * ntr)))
-        kva = max(1, int(round(self.cfg.bite_val_fraction * nva)))
-        tr_idx = rng.choice(ntr, size=min(ktr, ntr), replace=False)
-        va_idx = rng.choice(nva, size=min(kva, nva), replace=False)
-        return (
-            self.x_train[tr_idx],
-            self.y_train[tr_idx],
-            self.x_val[va_idx],
-            self._y_val_dense[va_idx],
-        )
-
     def evaluate_mask(
         self,
         mask: np.ndarray,
         mode: str = "full",
-        bite_seed: int | None = None,
     ) -> dict[str, Any]:
         selected = np.flatnonzero(np.asarray(mask, dtype=bool))
         if selected.size == 0:
             return self._zero_prediction_stats()
 
         t0 = time.perf_counter()
-        if mode == "bite":
-            x_tr, y_tr, x_va, y_va = self._build_local_bite(bite_seed)
-            tp, fp, fn, nval = self._eval_split(selected, x_tr, y_tr, x_va, y_va)
-        elif int(self.cfg.cv_folds) > 1:
+        if int(self.cfg.cv_folds) > 1:
             tp, fp, fn, nval = self._eval_cv(selected)
         else:
             tp, fp, fn, nval = self._eval_split(

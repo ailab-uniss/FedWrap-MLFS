@@ -64,7 +64,6 @@ def federated_config_from_dict(config: dict[str, Any], seed: int) -> FederatedCo
         dirichlet_alpha=float(f.get("dirichlet_alpha", 0.3)),
         min_samples_per_client=int(f.get("min_samples_per_client", 16)),
         size_distribution=str(f.get("size_distribution", "lognormal")),
-        client_fraction_bite=float(f.get("client_fraction_bite", 0.30)),
         client_fraction_full=float(f.get("client_fraction_full", 1.0)),
         final_eval_all_clients=bool(f.get("final_eval_all_clients", True)),
         return_client_metrics=bool(f.get("return_client_metrics", True)),

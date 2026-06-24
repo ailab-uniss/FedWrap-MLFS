@@ -16,7 +16,7 @@ from fedwrap.federated.scheduling import TierModel, replay_policy
 
 objn = ["one_minus_macro_f1", "one_minus_micro_f1", "feature_ratio"]
 DS, NC = "eICU_expl_k12", 12          # the heterogeneous clinical federation
-N_SEEDS, MAX_MASKS = 3, 40            # masks sampled from each run's Pareto front
+N_SEEDS, MAX_MASKS = 5, 40            # masks sampled from each run's Pareto front
 
 
 def main():
@@ -33,18 +33,24 @@ def main():
     ev = make_evaluator(xtr, ytr, xte, yte, ec, cfg, 0, groups=(gtr, gte))
     K = len(ev.clients); L = ytr.shape[1]
     sizes = np.array([c.n_val for c in ev.clients], dtype=float)
-    lat = TierModel().latencies(sizes)   # emulated edge/server/cloud latencies
+    # Realistic continuum: edge nodes ~20x slower per unit compute than a cloud/HPC node, on-prem
+    # servers ~5x; a small fixed communication term that does not dominate (so the tier factor, not a
+    # floor, sets the disparity). Round-robin tier assignment over the K clients.
+    tier = TierModel(tiers={"edge": 20.0, "server": 5.0, "cloud": 1.0}, comm_fixed=0.01)
+    lat = tier.latencies(sizes)
+    fac = np.array([tier.tiers[n] for n in tier.assign(K)])
 
     # collect masks from a few runs' Pareto fronts
     masks = []
-    for d in sorted(glob.glob(f"runs/plain_fed/{DS}_fawarm30_s*/population_masks.npz"))[:N_SEEDS]:
+    for d in sorted(glob.glob(f"runs/plain_fed/{DS}_faport_s*/population_masks.npz"))[:N_SEEDS]:
         z = np.load(d); Dz = int(z["n_features"])
         M = np.unpackbits(z["masks_packed"], axis=1)[:, :Dz].astype(bool)
         on = np.flatnonzero(z["pareto_val_mask"].astype(bool))
         for i in on[:MAX_MASKS]:
             masks.append(M[i])
-    print(f"{DS}: K={K} L={L}, {len(masks)} masks; latency ratio={lat.max()/lat.min():.1f}x "
-          f"(min {lat.min():.3f}, max {lat.max():.3f})", flush=True)
+    print(f"{DS}: K={K} L={L}, {len(masks)} masks; tier factor={fac.max()/fac.min():.0f}x, "
+          f"realized latency ratio={lat.max()/lat.min():.1f}x (min {lat.min():.3f}, max {lat.max():.3f})",
+          flush=True)
 
     # precompute per-client counts for each mask (the only compute)
     tp = np.zeros((len(masks), K, L)); fp = np.zeros_like(tp); fn = np.zeros_like(tp)
@@ -54,15 +60,17 @@ def main():
             tp[mi, ci] = r["tp"]; fp[mi, ci] = r["fp"]; fn[mi, ci] = r["fn"]
 
     full = replay_policy(tp, fp, fn, sizes, lat, "full", 1.0)
-    print(f"\n{'policy':28s}{'particip.':>10}{'speedup':>9}{'dmacro':>9}")
-    print(f"{'full (synchronous)':28s}{full['mean_participation']:>10.2f}{1.0:>8.2f}x{0.0:>9.4f}")
-    for lab, pol, q, dq in [("resource-aware quorum 0.8", "resource_aware", 0.8, 1.0),
+    print(f"\n{'policy':30s}{'particip.':>10}{'speedup':>9}{'dmacro':>9}")
+    print(f"{'full (synchronous)':30s}{full['mean_participation']:>10.2f}{1.0:>8.2f}x{0.0:>9.4f}")
+    for lab, pol, q, dq in [("deadline p80 (full mass)", "full", 1.0, 0.80),
+                            ("deadline p60 (full mass)", "full", 1.0, 0.60),
+                            ("resource-aware quorum 0.8", "resource_aware", 0.8, 1.0),
                             ("resource-aware quorum 0.6", "resource_aware", 0.6, 1.0),
-                            ("resource-aware quorum 0.4", "resource_aware", 0.4, 1.0),
+                            ("resource-aware quorum 0.3", "resource_aware", 0.3, 1.0),
                             ("uniform quorum 0.6", "uniform", 0.6, 1.0),
                             ("quorum 0.6 + deadline p60", "resource_aware", 0.6, 0.60)]:
         r = replay_policy(tp, fp, fn, sizes, lat, pol, q, deadline_q=dq, seed=1)
-        print(f"{lab:28s}{r['mean_participation']:>10.2f}{full['walltime']/r['walltime']:>8.2f}x"
+        print(f"{lab:30s}{r['mean_participation']:>10.2f}{full['walltime']/r['walltime']:>8.2f}x"
               f"{r['mae_vs_full']:>9.4f}")
 
 

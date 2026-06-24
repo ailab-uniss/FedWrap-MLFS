@@ -13,8 +13,7 @@ The genotype is a flat feature mask ``m in {0,1}^D``; the search itself is made 
     selected subset does not work only on a dominant client.
 
 These reuse the per-client / per-label sufficient statistics the federated evaluator already
-returns; client-stratified bite prescreening and exact full-evaluation archive certification are
-handled by the evaluator and the NSGA-II loop.
+returns; exact full-evaluation archive certification is handled by the evaluator and the NSGA-II loop.
 """
 from __future__ import annotations
 
@@ -32,13 +31,14 @@ class FedAwareConfig:
     enabled: bool = True
     stability_tiebreak: bool = True
     disagreement_mutation: bool = True
-    client_stratified_bite: bool = True
     disagreement_prob: float = 0.5        # P(a mutation call is disagreement-guided vs plain bitflip)
     relevance_pool: int = 20              # candidate pool size of top-relevance features per move
     hardness_temperature: float = 0.5     # softmax temperature over label hardness
     relevance_warmstart: bool = True      # seed part of the initial population from the relevance sketch
     warmstart_frac: float = 0.3           # fraction of the initial population built from the sketch
     warmstart_jitter: float = 0.10        # expected fraction of seeded features randomly perturbed
+    filter_seed: bool = False             # also seed the population with strong federated-filter masks
+    swap_prob: float = 0.0                # P(a mutation is a sparsity-preserving random swap)
 
 
 def federated_relevance(clients, n_features: int, n_labels: int,
@@ -156,13 +156,10 @@ class FedAwareVariation(Variation):
     def crossover(self, a, b, rng):
         return bitstring_crossover(np.asarray(a, bool), np.asarray(b, bool), rng)
 
-    def mutate(self, a, rng):
-        a = np.asarray(a, bool)
-        if (not self.fa.disagreement_mutation) or rng.random() >= float(self.fa.disagreement_prob):
-            return bitstring_mutate(a, self.bcfg, rng)
+    def _guided_swap(self, a, rng):
+        """Relevance/hard-label-guided swap: add a high-relevance feature a hard label misses, drop a
+        selected feature of lowest aggregate relevance (sparsity-neutral)."""
         m = a.copy()
-        # pick a hard label, add a high-relevance feature it currently misses (sparsity-neutral:
-        # remove a selected feature of low aggregate relevance).
         l = int(rng.choice(self.n_labels, p=self.hard_weights))
         pool = self._rank[l][: max(1, int(self.fa.relevance_pool))]
         cand = pool[~m[pool]]
@@ -170,9 +167,32 @@ class FedAwareVariation(Variation):
             m[int(rng.choice(cand))] = True
         sel = np.flatnonzero(m)
         if sel.size > 1:
-            # remove the selected feature with the lowest global relevance
             worst = sel[int(np.argmin(self.global_rel[sel]))]
             m[worst] = False
-        if m.sum() == 0:
+        if not m.any():
             m[int(rng.integers(0, m.size))] = True
         return m
+
+    def _plain_swap(self, a, rng):
+        """Sparsity-preserving neighborhood move: turn one active feature off and one inactive on,
+        without relevance guidance---explores the neighborhood of a good mask (e.g. a filter seed)
+        when individual-feature relevance signals are noisy."""
+        m = a.copy(); on = np.flatnonzero(m); off = np.flatnonzero(~m)
+        if on.size and off.size:
+            m[int(rng.choice(on))] = False
+            m[int(rng.choice(off))] = True
+        if not m.any():
+            m[int(rng.integers(0, m.size))] = True
+        return m
+
+    def mutate(self, a, rng):
+        a = np.asarray(a, bool)
+        if not self.fa.disagreement_mutation:
+            return bitstring_mutate(a, self.bcfg, rng)
+        # operator portfolio: plain swap (neighborhood), guided swap (relevance), or plain bit-flip
+        u = rng.random()
+        if u < float(self.fa.swap_prob):
+            return self._plain_swap(a, rng)
+        if u < float(self.fa.swap_prob) + float(self.fa.disagreement_prob):
+            return self._guided_swap(a, rng)
+        return bitstring_mutate(a, self.bcfg, rng)

@@ -19,7 +19,7 @@ from scipy import sparse
 
 def make_synth(N=10000, D=1000, L=20, K=8, informative_ratio=0.10, noise=0.3,
                alpha=1.0, labels_per_feature=3, target_card=2.5, signal_strength=5.0,
-               noise_scale=0.5, n_informative=None, test_frac=0.25, seed=0):
+               noise_scale=0.5, n_informative=None, interaction_frac=0.0, test_frac=0.25, seed=0):
     rng = np.random.default_rng(seed)
     # n_informative (absolute) fixes the informative subspace independent of D: for the D-sweep this
     # keeps the kNN-friendly signal fixed while only noise features grow. If None, fall back to ratio.
@@ -28,16 +28,34 @@ def make_synth(N=10000, D=1000, L=20, K=8, informative_ratio=0.10, noise=0.3,
     inf_idx = rng.choice(D, size=n_inf, replace=False)
     noise_idx = np.setdiff1d(np.arange(D), inf_idx)
 
-    # label weight matrix W (L x D), nonzero only on informative features. Every label depends on
-    # the SHARED informative subspace (dense weights over inf_idx) so a single nearest-neighbour
-    # distance over those features serves all labels -- the regime ML-kNN is designed for. The
-    # pure-noise features are what dilutes the distance and motivates selection.
-    W = np.zeros((L, D), dtype=np.float32)
-    W[:, inf_idx] = rng.normal(0, 1.0, size=(L, n_inf)).astype(np.float32)
+    # Split the informative subspace into a LINEAR part and an INTERACTION part. Linear features carry
+    # a marginal label correlation, so per-feature relevance filters (fed-rank, FMLFS) find them.
+    # Interaction features carry signal only through pairwise products x_a*x_b: each one alone has
+    # ~zero marginal relevance (a filter ranks it low), but the pair is informative and ML-kNN
+    # captures it once BOTH are selected. Only a wrapper that evaluates whole subsets discovers them,
+    # so ``interaction_frac`` sets how much of the signal a per-feature filter must miss.
+    f = float(interaction_frac)
+    n_int = int(round(f * n_inf)); n_int -= n_int % 2          # even, for pairs
+    n_lin = n_inf - n_int
+    lin_idx = inf_idx[:n_lin]; int_idx = inf_idx[n_lin:n_lin + n_int]
+    pairs = int_idx.reshape(-1, 2) if n_int else np.zeros((0, 2), dtype=int)
 
     # latent clean features drive the labels; observed features add noise
     Xc = rng.normal(0, 1.0, size=(N, D)).astype(np.float32)
-    S = Xc @ W.T                                    # (N, L) label scores
+
+    def _zn(A):
+        return A / (A.std(axis=0, keepdims=True) + 1e-6)
+    W = np.zeros((L, D), dtype=np.float32)
+    if n_lin:
+        W[:, lin_idx] = rng.normal(0, 1.0, size=(L, n_lin)).astype(np.float32)
+    S_lin = _zn(Xc @ W.T)                                      # (N, L) linear label scores
+    if pairs.shape[0]:
+        prod = Xc[:, pairs[:, 0]] * Xc[:, pairs[:, 1]]         # (N, n_pairs) pairwise interactions
+        Wint = rng.normal(0, 1.0, size=(pairs.shape[0], L)).astype(np.float32)
+        S_int = _zn(prod @ Wint)
+        S = (np.sqrt(1.0 - f) * S_lin + np.sqrt(f) * S_int) if n_lin else S_int
+    else:
+        S = S_lin
     S /= (S.std(axis=0, keepdims=True) + 1e-6)
     S *= float(signal_strength)                     # difficulty: lower -> noisier labels (oracle macro down)
     # per-label bias to hit a target average cardinality (sparse multi-label)
@@ -86,12 +104,14 @@ def make_synth(N=10000, D=1000, L=20, K=8, informative_ratio=0.10, noise=0.3,
     return Xtr, Ytr, groups[tr], Xte, Yte, groups[is_test], np.sort(inf_idx)
 
 
-def materialize(path, N, D, L, K, informative_ratio, noise, alpha, seed, n_informative=None):
+def materialize(path, N, D, L, K, informative_ratio, noise, alpha, seed, n_informative=None,
+                interaction_frac=0.0, signal_strength=5.0):
     """Write a prefold dataset (fold0) consumable by run_experiment_from_config."""
     from pathlib import Path
     Xtr, Ytr, gtr, Xte, Yte, gte, inf = make_synth(N=N, D=D, L=L, K=K,
         informative_ratio=informative_ratio, noise=noise, alpha=alpha,
-        n_informative=n_informative, seed=seed)
+        n_informative=n_informative, interaction_frac=interaction_frac,
+        signal_strength=signal_strength, seed=seed)
     out = Path(path) / "fold0"; out.mkdir(parents=True, exist_ok=True)
 
     def save(p, x, y):

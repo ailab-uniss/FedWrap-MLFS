@@ -2,7 +2,7 @@
 
 The server never sees raw data: clients return per-label ``TP``, ``FP``, ``FN``
 counts on their local validation set. The server sums them and computes *global*
-micro-F1 and macro-F1. Per the research plan (section 5.2) we must NOT average
+micro-F1 and macro-F1. We must NOT average
 local F1 scores, because that biases the estimate under quantity- and label-skew.
 """
 from __future__ import annotations

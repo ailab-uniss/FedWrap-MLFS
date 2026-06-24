@@ -172,22 +172,11 @@ def nsga2(
     on_generation: (
         Callable[[int, list[Individual]], bool | None] | None
     ) = None,
-    bite_evaluate: Callable[[object], tuple[np.ndarray, dict[str, object]]] | None = None,
-    bite_promote_topk: int = 0,
     tie_breaker: Callable[[Individual], float] | None = None,
     stability_blend: float = 0.0,
 ) -> list[Individual]:
-    """Run NSGA-II and return the final population.
-
-    Federated bite prescreening (optional): when ``bite_evaluate`` is given, each
-    generation's offspring are first scored cheaply (a client fraction + sub-sampled
-    local data); only the top ``bite_promote_topk`` by non-dominated rank/crowding get
-    a full evaluation (which alone counts against ``max_evals``). The returned front is
-    re-scored with the full evaluator by the caller, so bite scores never enter the
-    final Pareto decision (elitism-safe).
-    """
+    """Run NSGA-II and return the final population."""
     rng = np.random.default_rng(seed)
-    use_bites = bite_evaluate is not None and int(bite_promote_topk) > 0
 
     # ── Initialise ────────────────────────────────────────────────
     genomes = init_population(rng)
@@ -248,33 +237,11 @@ def nsga2(
                     break
                 child_genomes.append(c)
 
-        # ── Evaluate offspring (optionally via bite prescreening) ──
-        if not use_bites:
-            for c in child_genomes:
-                obj, meta = evaluate(c)
-                offspring.append(Individual(genome=c, objectives=obj, meta=meta))
-                eval_count += 1
-        else:
-            # 1) cheap bite score for every offspring (does NOT count toward budget)
-            inds = []
-            for c in child_genomes:
-                bobj, bmeta = bite_evaluate(c)
-                inds.append(Individual(genome=c, objectives=bobj, meta=bmeta))
-            # 2) promote the bite-nondominated best to a full evaluation
-            bobjs = np.stack([p.objectives for p in inds], axis=0)
-            promote = []
-            for front in fast_nondominated_sort(bobjs):
-                cd = crowding_distance(bobjs, front)
-                for oi in np.argsort(-cd):
-                    promote.append(int(front[int(oi)]))
-            promote_set = set(promote[: int(bite_promote_topk)])
-            for i, ind in enumerate(inds):
-                if i in promote_set:
-                    obj, meta = evaluate(ind.genome)
-                    ind.objectives = obj
-                    ind.meta = meta
-                    eval_count += 1
-                offspring.append(ind)
+        # ── Evaluate offspring ────────────────────────────────────
+        for c in child_genomes:
+            obj, meta = evaluate(c)
+            offspring.append(Individual(genome=c, objectives=obj, meta=meta))
+            eval_count += 1
 
         # ── Environmental selection ───────────────────────────────
         combined = pop + offspring

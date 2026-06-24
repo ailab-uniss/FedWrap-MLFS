@@ -1,7 +1,7 @@
 """Flat binary-mask genotype used by FedWrap-MLFS.
 
 A candidate is a flat feature mask ``m in {0,1}^D``. The federation-aware operators that drive the
-search (disagreement-guided mutation, client-stability ranking, client-stratified bites) live in
+search (disagreement-guided mutation, client-stability ranking) live in
 :mod:`fedwrap.fedaware`; this module provides the encoding and its plain genetic operators.
 """
 from __future__ import annotations

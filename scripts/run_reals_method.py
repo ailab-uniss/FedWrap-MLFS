@@ -46,14 +46,18 @@ for seed in SEEDS:
     setk(cfg, "evolution.max_evals", 300000)
     setk(cfg, "evolution.early_stopping", {"enabled": True, "mode": "window", "window": 10, "rel_tol": 0.002, "patience": 3})
     is_warm = METHOD.startswith("fawarm")
-    setk(cfg, "fedaware.enabled", METHOD == "fedaware" or is_warm)
+    is_port = METHOD == "faport"   # portfolio: relevance warmstart + filter-seeded init + swap operator
+    setk(cfg, "fedaware.enabled", METHOD == "fedaware" or is_warm or is_port)
     setk(cfg, "fedaware.stability_tiebreak", True); setk(cfg, "fedaware.disagreement_mutation", True)
-    # 'fedaware' = original operators (mutation + tie-break) only; 'fawarm[NN]' adds relevance warmstart
-    # with warmstart_frac = NN/100 (default 0.5 for bare 'fawarm').
-    setk(cfg, "fedaware.relevance_warmstart", is_warm)
+    # 'fedaware' = original operators only; 'fawarm[NN]' adds relevance warmstart (frac NN/100);
+    # 'faport' = warmstart(0.3) + filter-seeded initialization + sparsity-preserving swap operator.
+    setk(cfg, "fedaware.relevance_warmstart", is_warm or is_port)
     if is_warm and METHOD[len("fawarm"):].isdigit():
         setk(cfg, "fedaware.warmstart_frac", int(METHOD[len("fawarm"):]) / 100.0)
-    setk(cfg, "bites.enabled", False)
+    if is_port:
+        setk(cfg, "fedaware.warmstart_frac", 0.3)
+        setk(cfg, "fedaware.filter_seed", True)
+        setk(cfg, "fedaware.swap_prob", 0.4)      # 0.4 swap / 0.4 guided / 0.2 bit-flip
     fed = {"enabled": True, "n_clients": nclients, "partition": "natural_silo",
            "min_samples_per_client": 32, "client_fraction_full": 1.0, "final_eval_all_clients": True,
            "return_client_metrics": True, "estimate_communication": True, "n_jobs": 8}

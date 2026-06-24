@@ -58,7 +58,7 @@ def main():
         ev = make_evaluator(xtr, ytr, xte, yte, ec, cfg, 0, groups=(gtr, gte))
         fed_scores = fed_rank_relevance(ev.clients)
         rows = {"FedWrap": [], "fed-rank": []}
-        for d in sorted(glob.glob(f"runs/plain_fed/{ds}_fawarm30_s*/population_masks.npz")):
+        for d in sorted(glob.glob(f"runs/plain_fed/{ds}_faport_s*/population_masks.npz")):
             m = valbest(np.load(d)); r = float(m.sum() / D)
             rows["FedWrap"].append(dist(ev, m))
             rows["fed-rank"].append(dist(ev, ranking_to_mask(fed_scores, r)))

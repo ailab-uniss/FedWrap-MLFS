@@ -48,7 +48,6 @@ fedaware:
   enabled: true
   stability_tiebreak: true
   disagreement_mutation: true
-  client_stratified_bite: true
 
 logging:
   out_dir: runs/repro/main_bench

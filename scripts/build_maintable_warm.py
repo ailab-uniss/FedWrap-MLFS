@@ -16,7 +16,7 @@ from fedwrap.federated.baselines import build_baseline_masks, fmlfs
 from fedwrap.metrics import hypervolume_3d, pareto_nondominated
 
 DATASETS = [("ECG_cinc2021", 8), ("eICU_expl_k12", 12), ("ExtraSensory", 16)]
-OURS = {"fawarm30": "FedWrap-MLFS", "bitstring": "base NSGA-II", "localavg": "local-avg wrapper"}
+OURS = {"faport": "FedWrap-MLFS", "bitstring": "base NSGA-II", "localavg": "local-avg wrapper"}
 objn = ["one_minus_macro_f1", "one_minus_micro_f1", "feature_ratio"]
 REF = (1.0, 1.0, 1.0)
 
@@ -54,7 +54,7 @@ def main():
                 rt.append(float(M[bi].sum() / D))
                 hv.append(hypervolume_3d(pareto_nondominated(z["test_objs"]), ref=REF))
             ours[geno] = dict(macro=np.array(ma), micro=np.array(mi), ratio=np.array(rt), hv=np.array(hv))
-            if geno == "fawarm30":
+            if geno == "faport":
                 ratios = rt
         print(f"\n===== {ds} (D={D}, {len(ratios)} seeds) =====")
         for geno, lab in OURS.items():
@@ -94,7 +94,7 @@ def main():
                              micro=round(rfm.f1_micro, 4), nfeat=int(round(mean_r*D)), ratio=round(mean_r, 3)))
 
         # Wilcoxon: FedWrap vs base, vs strongest fast filter
-        fw = ours["fawarm30"]["macro"]
+        fw = ours["faport"]["macro"]
         for ref_lab, arr in [("base NSGA-II", ours["bitstring"]["macro"])] + list(filt.items()):
             if len(arr) == len(fw) and np.any(fw != arr):
                 p = wilcoxon(fw, arr).pvalue

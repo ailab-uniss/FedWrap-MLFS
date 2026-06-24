@@ -1,4 +1,4 @@
-"""Federated feature-selection baselines (research plan, section 13).
+"""Federated feature-selection baselines.
 
 These produce a *feature ranking* (or directly a mask) without centralising raw
 data: each client computes a local relevance score; the server aggregates. Masks

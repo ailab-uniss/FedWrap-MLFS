@@ -152,13 +152,14 @@ def run_experiment_from_config(config: dict[str, Any], fold_idx: int | None = No
         enabled=bool(get(config, "fedaware.enabled", False)),
         stability_tiebreak=bool(get(config, "fedaware.stability_tiebreak", True)),
         disagreement_mutation=bool(get(config, "fedaware.disagreement_mutation", True)),
-        client_stratified_bite=bool(get(config, "fedaware.client_stratified_bite", True)),
         disagreement_prob=float(get(config, "fedaware.disagreement_prob", 0.5)),
         relevance_pool=int(get(config, "fedaware.relevance_pool", 20)),
         hardness_temperature=float(get(config, "fedaware.hardness_temperature", 0.5)),
         relevance_warmstart=bool(get(config, "fedaware.relevance_warmstart", True)),
         warmstart_frac=float(get(config, "fedaware.warmstart_frac", 0.3)),
         warmstart_jitter=float(get(config, "fedaware.warmstart_jitter", 0.10)),
+        filter_seed=bool(get(config, "fedaware.filter_seed", False)),
+        swap_prob=float(get(config, "fedaware.swap_prob", 0.0)),
     )
     fa_variation = None  # set below when fedaware is enabled on the bitstring genotype
 
@@ -179,10 +180,34 @@ def run_experiment_from_config(config: dict[str, Any], fold_idx: int | None = No
         else:
             variation = BitstringVariation(bcfg)
 
+        def _filter_seeds(mr: float) -> list[np.ndarray]:
+            """Strong federated-filter masks (fed-rank, local-top-k, top-frequency) at several
+            sparsities, used as initialization priors so the wrapper refines them rather than
+            rediscovering them (helps when local filters are strong, e.g. ExtraSensory)."""
+            from .federated.baselines import (fed_rank_relevance, ranking_to_mask,
+                                              local_topk_union, topk_frequency_scores)
+            cl = evaluator.clients
+            try:
+                fr = fed_rank_relevance(cl)
+            except Exception:
+                return []
+            seeds = []
+            for r in sorted({0.05, 0.10, 0.20, float(mr)}):
+                for mk in (ranking_to_mask(fr, r), local_topk_union(cl, r),
+                           ranking_to_mask(topk_frequency_scores(cl, r), r)):
+                    seeds.append(np.asarray(mk, dtype=bool))
+            return seeds
+
         def init_pop(rng: np.random.Generator) -> list[object]:
             if fa_variation is not None and fa_cfg.relevance_warmstart:
                 mr = float(get(config, "reporting.max_feature_ratio", 0.25))
-                return list(fa_variation.seed_population(pop_size, rng, max_ratio=mr))
+                pop: list[object] = []
+                if fa_cfg.filter_seed and isinstance(evaluator, FederatedEvaluator):
+                    pop.extend(_filter_seeds(mr)[:pop_size])
+                rest = max(0, pop_size - len(pop))
+                pop.extend(fa_variation.seed_population(rest, rng, max_ratio=mr))
+                rng.shuffle(pop)
+                return pop[:pop_size]
             return [init_bitstring(n_features, bcfg, rng) for _ in range(pop_size)]
 
         def to_mask(genome: object) -> np.ndarray:
@@ -211,32 +236,6 @@ def run_experiment_from_config(config: dict[str, Any], fold_idx: int | None = No
                 meta["worst_client"] = float(st.worst_client_macro_f1)
                 meta["label_f1"] = per_label_f1(st.tp, st.fp, st.fn)
         return obj, meta
-
-    # ── Federated bite prescreening (efficiency) ──────────────────
-    from .federated.evaluator import FederatedEvaluator as _FE
-    bites_enabled = (
-        federated and bool(get(config, "bites.enabled", False))
-        and isinstance(evaluator, _FE)
-    )
-    bite_promote_topk = int(get(config, "bites.promote_topk", 4))
-    bite_cfrac = float(get(config, "federated.client_fraction_bite", 0.3))
-    # Client-stratified bite: contact ALL clients (each contributing a small sub-sampled local
-    # slice) so prescreening is not biased toward large clients or frequent labels.
-    if fa_cfg.enabled and fa_cfg.client_stratified_bite:
-        bite_cfrac = 1.0
-    _bite_seed = {"s": int(seed)}
-
-    def bite_evaluate(genome: object) -> tuple[np.ndarray, dict[str, object]]:
-        mask = to_mask(genome)
-        _bite_seed["s"] += 1
-        obj, ml = evaluator.evaluate_mask(mask, mode="bite", client_fraction=bite_cfrac,
-                                          bite_seed=_bite_seed["s"])
-        counts["bite"] = counts.get("bite", 0) + 1
-        return obj, {"selected": int(mask.sum()), "feature_ratio": float(mask.sum() / mask.size),
-                     "ml": asdict(ml)}
-    if bites_enabled:
-        log.info("Federated bite prescreening ENABLED: promote_topk=%d client_fraction_bite=%.2f",
-                 bite_promote_topk, bite_cfrac)
 
     # ── Early stopping (sliding-window on HV) ─────────────────────
     n_obj = len(objective_names) if objective_names else 2
@@ -309,8 +308,6 @@ def run_experiment_from_config(config: dict[str, Any], fold_idx: int | None = No
         mutation_prob=mutation_prob,
         seed=seed,
         on_generation=on_generation,
-        bite_evaluate=bite_evaluate if bites_enabled else None,
-        bite_promote_topk=bite_promote_topk if bites_enabled else 0,
         tie_breaker=(lambda ind: (ind.meta or {}).get("client_risk", 0.0))
                     if (fa_cfg.enabled and fa_cfg.stability_tiebreak) else None,
         stability_blend=float(get(config, "fedaware.stability_blend", 0.15))
