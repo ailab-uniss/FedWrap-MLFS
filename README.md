@@ -30,10 +30,13 @@ Core dependencies: numpy, scipy, scikit-learn, pyyaml (see `requirements.txt`). 
 
 ## Data
 
-Datasets are **not** committed to this repository. The synthetic federations are generated on the fly
-by `scripts/synth_scaling.py`. The three real federations are derived from external sources and must
-be obtained separately, then placed under `data/fed_real/<dataset>/fold0/` as `trainval.npz`,
-`test.npz`, `trainval_groups.npy`, `test_groups.npy`:
+A small **synthetic demo federation is bundled** (`data/synth_demo/`, with prebuilt workflow shards in
+`workflow/shards/synth_demo/`) so the workflow demo runs straight from a clean clone (see
+`workflow/README.md`). The **paper datasets are not committed**: the synthetic sweeps are regenerated on
+the fly by `scripts/synth_scaling.py` / `scripts/run_interaction_campaign.py`, and the three real
+federations are derived from external sources and must be obtained separately, then placed under
+`data/fed_real/<dataset>/fold0/` as `trainval.npz`, `test.npz`, `trainval_groups.npy`,
+`test_groups.npy`:
 
 - **ECG** — PhysioNet/Computing in Cardiology 2021 (public).
 - **ExtraSensory** — public.
@@ -43,8 +46,8 @@ be obtained separately, then placed under `data/fed_real/<dataset>/fold0/` as `t
 ## Reproduce the main results
 
 ```bash
-# real federations, one method/seed at a time (FedAware warm start = "fawarm30")
-python scripts/run_reals_method.py eICU_expl_k12 fawarm30 0,1,2,3,4,5,6,7,8,9
+# real federations, one method/seed at a time (the operator portfolio = "faport"; the headline method)
+python scripts/run_reals_method.py eICU_expl_k12 faport 0,1,2,3,4,5,6,7,8,9
 
 # 10-seed main table (FedWrap vs base vs filters, with Wilcoxon)
 python scripts/build_maintable_warm.py        # -> reports/maintable_warm.csv
