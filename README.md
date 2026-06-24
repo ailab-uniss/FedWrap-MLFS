@@ -43,6 +43,22 @@ federations are derived from external sources and must be obtained separately, t
 - **eICU-CRD** — PhysioNet *credentialed* access (CITI training + signed Data Use Agreement); each
   user with access must be individually credentialed, and the data must not be redistributed.
 
+### Reproduce the *exact* paper synthetic
+
+The synthetic federations are not shipped as binaries because they are **byte-deterministic**:
+generation seeds numpy's version-stable `default_rng` (PCG64), so re-running yields the *identical*
+data used in the manuscript (verified by hashing: same seed → identical SHA-256). The exact grids and
+seeds are encoded in the scripts, so one command regenerates all three synthetic studies exactly:
+
+```bash
+bash scripts/reproduce_paper_synthetic.sh   # D-law (D∈{100,500,1000,2000,5000}, 10 seeds),
+                                            # heterogeneity (alpha, K; 5 seeds), interaction (5 seeds)
+```
+
+This recipe *is* the dataset. (If a literal, citable archive of the `.npz` files is needed, deposit
+the generated tree on Zenodo/figshare and cite the DOI — that is the right home for ~280 MB of data,
+not the git repository.)
+
 ## Reproduce the main results
 
 ```bash
