@@ -1,8 +1,12 @@
 # TEMPLATE --- run the SAME FedWrap-MLFS workflow on an HPC cluster via SLURM + Singularity.
 # Fill in the <PLACEHOLDERS> for your cluster and rename to streamflow-slurm.yml, then:
 #
-#   singularity build fedwrap-workflow.sif docker-daemon://fedwrap-workflow:latest   # once
+#   apptainer build --fakeroot fedwrap-workflow.sif workflow/fedwrap.def   # once, NO Docker needed
 #   streamflow run workflow/streamflow-slurm.yml
+#
+# (No Docker on the cluster? That's normal. The .sif is built from workflow/fedwrap.def with Apptainer,
+#  not from a Docker daemon. If --fakeroot is disabled, build the .sif on a machine where you have it
+#  and scp the single file over -- running a .sif is unprivileged. See workflow/README.md "No Docker".)
 #
 # The CWL (cwl/fed_eval.cwl) is UNCHANGED from the local run; only this binding changes --- which is
 # the whole point of expressing the method as a portable workflow. Each client step becomes one SLURM

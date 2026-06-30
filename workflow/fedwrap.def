@@ -1,0 +1,25 @@
+# Apptainer/Singularity definition for the FedWrap-MLFS workflow image --- builds the SAME /app
+# layout as workflow/Dockerfile WITHOUT a Docker daemon (departmental clusters usually forbid Docker).
+#
+# Build it (no Docker needed), from the repository root:
+#     apptainer build --fakeroot fedwrap-workflow.sif workflow/fedwrap.def
+#   # if --fakeroot is not permitted on the cluster, build on any machine where you have it and copy
+#   # the single .sif over:  scp fedwrap-workflow.sif <cluster>:<path>/   (running a .sif needs no root)
+#
+# Then point the StreamFlow singularity deployment at it (image: <path>/fedwrap-workflow.sif) and run
+# as usual. The CWL and the baseCommand (`python /app/workflow/...`) are unchanged.
+Bootstrap: docker
+From: python:3.10-slim
+
+%files
+    fedwrap /app/fedwrap
+    workflow /app/workflow
+
+%post
+    pip install --no-cache-dir numpy==2.* scipy==1.* scikit-learn==1.* pyyaml
+
+%environment
+    export PYTHONPATH=/app
+
+%runscript
+    exec python "$@"

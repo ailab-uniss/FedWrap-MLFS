@@ -66,13 +66,34 @@ visible to the compute nodes. No live inter-node networking is required: StreamF
 shard/mask/counter files through the shared filesystem.
 
 ```bash
-# build the Singularity image from the same Docker image
-singularity build fedwrap-workflow.sif docker-daemon://fedwrap-workflow:latest
+# build the container image WITHOUT Docker, straight from the Apptainer definition file
+apptainer build --fakeroot fedwrap-workflow.sif workflow/fedwrap.def
 
 # fill <PLACEHOLDERS> (login host, user, partition, account, image path) in the template
 cp workflow/streamflow-slurm.yml.template workflow/streamflow-slurm.yml
 streamflow run workflow/streamflow-slurm.yml
 ```
+
+### No Docker on the cluster
+
+Departmental clusters almost never allow Docker (it needs a root daemon) — that's expected, and you
+don't need it. Docker was only ever used *locally* to build the image; on the cluster the container is
+**Apptainer/Singularity**, which runs rootless. Build the `.sif` from
+[`fedwrap.def`](fedwrap.def) (a self-contained recipe that pulls `python:3.10-slim` and installs the
+four deps — no Docker daemon involved). Three routes, easiest first:
+
+1. **`apptainer build --fakeroot fedwrap-workflow.sif workflow/fedwrap.def`** — on the cluster, if your
+   admin enabled rootless `--fakeroot` (most modern clusters do).
+2. **Build elsewhere, copy the file.** If `--fakeroot` is disabled, run the same `apptainer build` on
+   any machine where you have it (e.g. your laptop), then `scp fedwrap-workflow.sif <cluster>:<path>/`.
+   *Running* a `.sif` is unprivileged, so this always works.
+3. **Pull from a registry.** If the image is published (e.g. GHCR), `apptainer pull
+   fedwrap-workflow.sif docker://ghcr.io/ailab-uniss/fedwrap-workflow:latest` — no Docker, no build,
+   no root. (Ask the maintainers to push it if you prefer this.)
+
+`apptainer` and `singularity` are CLI-compatible here; use whichever the cluster provides. Everything
+downstream (the StreamFlow `singularity` deployment, the `python /app/workflow/...` baseCommand) is
+unchanged — only *how the .sif is produced* differs.
 
 The full evolutionary search (thousands of rounds) is driven by the fast in-process simulator, whose
 aggregation is numerically identical to this workflow (verified to 1e-9); the workflow is the
