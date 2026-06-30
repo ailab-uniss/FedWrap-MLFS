@@ -61,39 +61,47 @@ shards (synthetic or public data only --- not eICU on shared infra):
 
 ## Run on an HPC cluster
 
-The cluster needs **SLURM** (or PBS/Flux), **Singularity/Apptainer**, and a **shared filesystem**
-visible to the compute nodes. No live inter-node networking is required: StreamFlow stages the
-shard/mask/counter files through the shared filesystem.
+The cluster needs **SLURM** (or PBS/Flux) and a **shared filesystem** visible to the compute nodes
+(StreamFlow stages the shard/mask/counter files through it — no live inter-node networking required).
+A container runtime is **optional**: the workflow steps are pure Python and the CWL's
+`DockerRequirement` is a *hint*, so you can run **with no container at all** or with Apptainer.
+
+**No Docker on the cluster?** That is the norm — Docker needs a root daemon. You have two Docker-free
+paths; the first needs nothing but the Python that is already on every cluster.
+
+### Option A — no container (simplest; verified)
+
+The steps install as console scripts (`fedwrap-client-eval` / `fedwrap-aggregate`), so they run in a
+plain conda/venv. Verified end-to-end: `cwltool --no-container` reproduces the in-process simulator to
+the bit (max |Δ| = 0).
 
 ```bash
-# build the container image WITHOUT Docker, straight from the Apptainer definition file
-apptainer build --fakeroot fedwrap-workflow.sif workflow/fedwrap.def
+conda create -n fedwrap python=3.10 -y && conda activate fedwrap   # or python -m venv
+pip install .                                                       # deps + the two console scripts
 
-# fill <PLACEHOLDERS> (login host, user, partition, account, image path) in the template
-cp workflow/streamflow-slurm.yml.template workflow/streamflow-slurm.yml
-streamflow run workflow/streamflow-slurm.yml
+# local check (no container, no cluster):
+cwltool --no-container --outdir out workflow/cwl/fed_eval.cwl job.yml && cat out/global.json
+
+# on the cluster (StreamFlow over SLURM, no container layer):
+cp workflow/streamflow-slurm-nocontainer.yml.template workflow/streamflow-slurm-nocontainer.yml
+streamflow run workflow/streamflow-slurm-nocontainer.yml   # ensure the conda env is active for the jobs
 ```
 
-### No Docker on the cluster
+### Option B — Apptainer/Singularity (reproducible image, still no Docker)
 
-Departmental clusters almost never allow Docker (it needs a root daemon) — that's expected, and you
-don't need it. Docker was only ever used *locally* to build the image; on the cluster the container is
-**Apptainer/Singularity**, which runs rootless. Build the `.sif` from
-[`fedwrap.def`](fedwrap.def) (a self-contained recipe that pulls `python:3.10-slim` and installs the
-four deps — no Docker daemon involved). Three routes, easiest first:
+For a bit-pinned, portable image, build the `.sif` from [`fedwrap.def`](fedwrap.def) (pulls
+`python:3.10-slim` and `pip install .` — no Docker daemon). Three routes, easiest first:
 
 1. **`apptainer build --fakeroot fedwrap-workflow.sif workflow/fedwrap.def`** — on the cluster, if your
    admin enabled rootless `--fakeroot` (most modern clusters do).
 2. **Build elsewhere, copy the file.** If `--fakeroot` is disabled, run the same `apptainer build` on
-   any machine where you have it (e.g. your laptop), then `scp fedwrap-workflow.sif <cluster>:<path>/`.
-   *Running* a `.sif` is unprivileged, so this always works.
-3. **Pull from a registry.** If the image is published (e.g. GHCR), `apptainer pull
-   fedwrap-workflow.sif docker://ghcr.io/ailab-uniss/fedwrap-workflow:latest` — no Docker, no build,
-   no root. (Ask the maintainers to push it if you prefer this.)
+   any machine where you have it, then `scp fedwrap-workflow.sif <cluster>:<path>/`. *Running* a `.sif`
+   is unprivileged, so this always works.
+3. **Pull from a registry** (if the image is published): `apptainer pull fedwrap-workflow.sif
+   docker://ghcr.io/ailab-uniss/fedwrap-workflow:latest` — no Docker, no build, no root.
 
-`apptainer` and `singularity` are CLI-compatible here; use whichever the cluster provides. Everything
-downstream (the StreamFlow `singularity` deployment, the `python /app/workflow/...` baseCommand) is
-unchanged — only *how the .sif is produced* differs.
+Then `cp workflow/streamflow-slurm.yml.template workflow/streamflow-slurm.yml` (point `image:` at the
+`.sif`) and `streamflow run`. `apptainer` and `singularity` are CLI-compatible; use whichever exists.
 
 The full evolutionary search (thousands of rounds) is driven by the fast in-process simulator, whose
 aggregation is numerically identical to this workflow (verified to 1e-9); the workflow is the

@@ -4,9 +4,11 @@
 #   docker build -f workflow/Dockerfile -t fedwrap-workflow:latest .
 FROM python:3.10-slim
 
-RUN pip install --no-cache-dir numpy==2.* scipy==1.* scikit-learn==1.* pyyaml
-
 WORKDIR /app
+COPY pyproject.toml /app/
 COPY fedwrap /app/fedwrap
 COPY workflow /app/workflow
+# installs the deps + the fedwrap/workflow packages + the console scripts
+# (fedwrap-client-eval / fedwrap-aggregate), which the CWL baseCommands invoke.
+RUN pip install --no-cache-dir .
 ENV PYTHONPATH=/app

@@ -3,11 +3,14 @@ cwlVersion: v1.2
 class: CommandLineTool
 label: "FedWrap-MLFS client step: train local ML-kNN on selected features, return TP/FP/FN counters"
 
-requirements:
+# DockerRequirement is a HINT, not a hard requirement: with a container runtime the step runs in the
+# image; with `cwltool --no-container` (or a StreamFlow deployment without a container) it runs the
+# `fedwrap-client-eval` console script from a plain conda/venv (`pip install .`). Same command both ways.
+hints:
   DockerRequirement:
     dockerImageId: fedwrap-workflow:latest
 
-baseCommand: [python, /app/workflow/client_eval.py]
+baseCommand: [fedwrap-client-eval]
 arguments: ["--out", "counters.json"]
 
 inputs:

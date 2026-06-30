@@ -19,10 +19,16 @@ gpu = ["torch>=2.0"]                          # optional GPU ML-kNN backend (cup
 workflow = ["cwltool>=3.1", "streamflow"]     # to run the CWL / StreamFlow workflow
 data = ["scikit-multilearn>=0.2"]             # optional, for some dataset loaders
 
+# The two workflow steps install as console scripts, so the CWL baseCommand resolves on PATH whether
+# run inside the container or in a plain conda/venv (no-container) environment.
+[project.scripts]
+fedwrap-client-eval = "workflow.client_eval:main"
+fedwrap-aggregate = "workflow.aggregate:main"
+
 [tool.setuptools]
 include-package-data = false
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["fedwrap*"]
-exclude = ["data*", "runs*", "reports*", "logs*", "scripts*", "paper*", "workflow*"]
+include = ["fedwrap*", "workflow"]
+exclude = ["data*", "runs*", "reports*", "logs*", "scripts*", "paper*"]

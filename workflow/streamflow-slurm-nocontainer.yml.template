@@ -1,0 +1,56 @@
+# TEMPLATE --- run the SAME FedWrap-MLFS workflow on an HPC cluster via SLURM, WITHOUT any container.
+# Use this when the cluster has neither Docker nor Apptainer/Singularity (or you just prefer a plain
+# environment). The workflow steps are pure Python; they install as the console scripts
+# `fedwrap-client-eval` / `fedwrap-aggregate`, which the CWL invokes directly.
+#
+# One-time setup on the cluster (Python/conda is always available):
+#     conda create -n fedwrap python=3.10 -y && conda activate fedwrap
+#     pip install .                      # installs deps + the two console scripts
+#   # make sure this env is ACTIVE for the SLURM jobs (see `workdir`/environment notes below), then:
+#     streamflow run workflow/streamflow-slurm-nocontainer.yml
+#
+# The CWL (cwl/fed_eval.cwl) is UNCHANGED. The only difference from the Singularity template is that
+# there is no `singularity` deployment: steps run directly on the compute node, in the conda env.
+# DockerRequirement in the CWL is a HINT, so StreamFlow runs the bare command here.
+version: v1.0
+
+workflows:
+  fedwrap:
+    type: cwl
+    config:
+      file: cwl/fed_eval.cwl
+      settings: ../job_ecg.yml      # job pointing at shards staged on the cluster filesystem
+    bindings:
+      - step: /client_eval
+        target:
+          deployment: hpc-slurm     # <-- bind directly to SLURM, no container layer
+      - step: /aggregate
+        target:
+          deployment: hpc-slurm
+
+deployments:
+  # 1) SSH to the cluster login/submission node.
+  hpc-login:
+    type: ssh
+    config:
+      nodes: ["<LOGIN_HOSTNAME>"]
+      username: "<USERNAME>"
+      sshKey: "<PATH_TO_SSH_KEY>"
+
+  # 2) SLURM submits each step as a batch job on a compute node.
+  hpc-slurm:
+    type: slurm
+    wraps: hpc-login
+    config:
+      # The `fedwrap` conda env (with `pip install .`) MUST be on PATH for the job so the
+      # `fedwrap-client-eval` / `fedwrap-aggregate` console scripts resolve. Easiest options:
+      #   - put `conda activate fedwrap` (or `module load`) in your shell rc that SLURM jobs source; or
+      #   - install the package into the default cluster Python that compute nodes already use.
+      services:
+        fedwrap:
+          partition: "<PARTITION>"
+          nodes: 1
+          ntasks: 1
+          cpusPerTask: 4
+          time: "01:00:00"
+          # account: "<PROJECT_ACCOUNT>"

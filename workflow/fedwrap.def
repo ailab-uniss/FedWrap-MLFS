@@ -12,11 +12,12 @@ Bootstrap: docker
 From: python:3.10-slim
 
 %files
+    pyproject.toml /app/pyproject.toml
     fedwrap /app/fedwrap
     workflow /app/workflow
 
 %post
-    pip install --no-cache-dir numpy==2.* scipy==1.* scikit-learn==1.* pyyaml
+    cd /app && pip install --no-cache-dir .   # deps + fedwrap/workflow + console scripts
 
 %environment
     export PYTHONPATH=/app
