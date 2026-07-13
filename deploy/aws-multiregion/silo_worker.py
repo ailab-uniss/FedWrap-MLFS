@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 """Resident FedWrap-MLFS silo evaluator (a persistent Flower-like client).
 
-Loads its LOCAL shard ONCE, then serves per-request feature-subset evaluations. Protocol (one line per
-request on stdin):
+Loads its LOCAL shard ONCE, then serves the server over stdin (one line per request):
+    prep                      -> per-client SUFFICIENT STATISTICS for the federated relevance sketch
+                                 and the filter seeds (Y^T X, sum X, sum X^2, label counts, n, local
+                                 relevance). No raw features leave the silo -- only aggregatable stats.
     eval                      -> evaluate the pre-deployed mask.npy (fixed-mask timing runs)
     eval <i,j,k,...>          -> evaluate the subset with those feature indices ON (the search sends this)
     quit
-Each request prints one JSON line with the label-wise TP/FP/FN counters (+ n_val). Keeping import and
-data load out of the per-request loop means a request measures network round-trip + inference only.
+`eval` returns one JSON line with the label-wise TP/FP/FN counters (+ n_val).
 """
 import json
 import sys
@@ -33,6 +34,18 @@ for line in sys.stdin:
     line = line.strip()
     if line == "quit":
         break
+    if line == "prep":
+        from fedwrap.federated.baselines import _local_relevance
+        X = x_tr.tocsr(); Y = y_tr.tocsr()
+        YtX = np.asarray((Y.T @ X).todense(), dtype=float)
+        out = {"YtX": YtX.tolist(),
+               "sumX": np.asarray(X.sum(axis=0)).ravel().tolist(),
+               "sumX2": np.asarray(X.multiply(X).sum(axis=0)).ravel().tolist(),
+               "pos": np.asarray(Y.sum(axis=0)).ravel().tolist(),
+               "n": int(X.shape[0]),
+               "lrel": [float(v) for v in _local_relevance(x_tr, y_tr)]}
+        sys.stdout.write(json.dumps(out) + "\n"); sys.stdout.flush()
+        continue
     if not line.startswith("eval"):
         continue
     arg = line[4:].strip()

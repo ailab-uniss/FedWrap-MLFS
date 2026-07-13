@@ -43,7 +43,7 @@ done < deploy/aws-multiregion/state.tsv
 
 bash   deploy/aws-multiregion/deploy_shards.sh  # push one shard + mask + worker to each silo
 python3 deploy/aws-multiregion/run_round.py  --rounds 10 --quorum 2   # scheduler: full-vs-quorum speed-up
-python3 deploy/aws-multiregion/run_search.py --pop 16 --evals 160     # full federated NSGA-II search across the silos
+python3 deploy/aws-multiregion/run_search.py --pop 16 --evals 160    # full FedAware-NSGA-II search (relevance sketch + fed-aware operators) across the silos
 
 bash   deploy/aws-multiregion/teardown.sh       # ALWAYS run when done -> deletes everything
 ```
@@ -89,6 +89,6 @@ Do **not** run `teardown.sh` on shared silos unless you agreed to (it removes ev
 | `deploy_shards.sh` | push shard + mask + `silo_worker.py` to each silo |
 | `silo_worker.py` | resident per-silo evaluator (persistent Flower-like client) |
 | `run_round.py` | timed rounds; reports full-vs-quorum speed-up and exact aggregation |
-| `run_search.py` | runs the real federated NSGA-II wrapper search across the silos (search + exact aggregation, end-to-end) |
+| `run_search.py` | runs the real **FedAware**-NSGA-II search across the silos: federated relevance sketch (from silo statistics) + fed-aware operators + client-stability tie-break + exact aggregation |
 | `join_existing.sh` | reuse a coauthor's already-launched silos: open SSH from your IP + rebuild `state.tsv` (no re-launch) |
 | `teardown.sh` | delete all `Project=fedwrap-configb` resources in the 3 regions |
