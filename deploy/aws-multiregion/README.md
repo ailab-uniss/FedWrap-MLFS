@@ -10,12 +10,12 @@ wide-area latency** — no `netem` injection. Each silo runs the workflow's own 
 | tier | region | per-round time |
 |---|---|---|
 | cloud | eu-south-1 (Milan) | ~30 ms |
-| server | eu-central-1 (Frankfurt) | ~40 ms |
-| edge | ap-northeast-1 (Tokyo) | ~240 ms |
+| server | eu-central-1 (Frankfurt) | ~41 ms |
+| edge | ap-northeast-1 (Tokyo) | ~241 ms |
 
 - **full participation** (wait for the far Tokyo edge): **~240 ms/round**
 - **resource-aware quorum=2** (proceed without the straggler): **~40 ms/round**
-- **critical-path speed-up: 6.1×** (mean over three independent 40-round sessions; std within 0.2×),
+- **critical-path speed-up: 6.2×** (mean over 120 rounds = three independent 40-round sessions; ±0.6×),
   with the aggregation still **exact** over the responders (global macro-F1 0.3918 on all 3 silos vs
   0.3773 on the fastest 2 — Prop. 1). `run_round.py` prints per-tier / full / quorum mean ± std.
 
@@ -42,7 +42,7 @@ while read -r tier region iid ip; do
 done < deploy/aws-multiregion/state.tsv
 
 bash   deploy/aws-multiregion/deploy_shards.sh  # push one shard + mask + worker to each silo
-python3 deploy/aws-multiregion/run_round.py  --rounds 10 --quorum 2   # scheduler: full-vs-quorum speed-up
+python3 deploy/aws-multiregion/run_round.py  --sessions 3 --rounds 40 --quorum 2   # scheduler: full-vs-quorum speed-up (mean±std)
 python3 deploy/aws-multiregion/run_search.py --pop 16 --evals 160    # full FedAware-NSGA-II search (relevance sketch + fed-aware operators) across the silos
 
 bash   deploy/aws-multiregion/teardown.sh       # ALWAYS run when done -> deletes everything
@@ -60,7 +60,7 @@ that path, `chmod 600`), then, **from your machine**, open your IP and pick up t
 
 ```bash
 bash deploy/aws-multiregion/join_existing.sh    # opens SSH from your IP + rebuilds state.tsv by tag
-python3 deploy/aws-multiregion/run_round.py --rounds 10 --quorum 2   # verify: scheduler speed-up
+python3 deploy/aws-multiregion/run_round.py --sessions 3 --rounds 40 --quorum 2   # verify: scheduler speed-up (mean±std)
 python3 deploy/aws-multiregion/run_search.py --pop 16 --evals 160    # verify: distributed search
 ```
 

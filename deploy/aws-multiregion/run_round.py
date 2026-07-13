@@ -86,49 +86,50 @@ def macro_f1(counters):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--rounds", type=int, default=10)
+    ap.add_argument("--rounds", type=int, default=10, help="rounds per session")
+    ap.add_argument("--sessions", type=int, default=1, help="independent sessions (fresh SSH connections)")
     ap.add_argument("--quorum", type=int, default=2)
     a = ap.parse_args()
     sl = silos()
-    print("connecting persistent workers...")
-    ws = [Worker(t, r, ip) for t, r, ip in sl]
-    for w in ws:
-        print(f"  {w.tier} ({w.region} {w.ip}): {'READY' if w.ready else 'FAILED'}")
-    if not all(w.ready for w in ws):
+    regions = {t: r for t, r, ip in sl}
+    tier_t = {t: [] for t, r, ip in sl}
+    full_t, quo_t, last = [], [], None
+    for sess in range(a.sessions):
+        print(f"session {sess + 1}/{a.sessions}: connecting persistent workers...")
+        ws = [Worker(t, r, ip) for t, r, ip in sl]
+        if not all(w.ready for w in ws):
+            for w in ws:
+                w.close()
+            print("  a worker failed to start; skipping session"); continue
+        a_round(ws)   # warm-up (excluded)
+        for rnd in range(a.rounds):
+            res = a_round(ws)
+            order = sorted((res[w.tier]["dt"], w.tier) for w in ws if res[w.tier]["cnt"] is not None)
+            if len(order) < len(ws):
+                continue
+            for w in ws:
+                tier_t[w.tier].append(res[w.tier]["dt"])
+            full_t.append(order[-1][0]); quo_t.append(order[a.quorum - 1][0]); last = res
         for w in ws:
             w.close()
-        print("some worker failed to start"); return
 
-    a_round(ws)   # warm-up (excluded)
-    tier_t = {w.tier: [] for w in ws}
-    full_t, quo_t, last = [], [], None
-    for rnd in range(a.rounds):
-        res = a_round(ws)
-        order = sorted((res[w.tier]["dt"], w.tier) for w in ws if res[w.tier]["cnt"] is not None)
-        if len(order) < len(ws):
-            print(f"round {rnd}: a silo failed to reply"); continue
-        for w in ws:
-            tier_t[w.tier].append(res[w.tier]["dt"])
-        full_t.append(order[-1][0]); quo_t.append(order[a.quorum - 1][0]); last = res
-
-    for w in ws:
-        w.close()
     if len(full_t) < 2:
         print("need >= 2 successful rounds for statistics"); return
 
     def ms(xs):
         return st.mean(xs) * 1000, st.stdev(xs) * 1000
 
-    allc = [last[w.tier]["cnt"] for w in ws]
-    fastest = [c for _, c in sorted((st.mean(tier_t[w.tier]), last[w.tier]["cnt"]) for w in ws)[:a.quorum]]
+    tiers = list(tier_t.keys())
+    allc = [last[t]["cnt"] for t in tiers]
+    fastest = [c for _, c in sorted((st.mean(tier_t[t]), last[t]["cnt"]) for t in tiers)[:a.quorum]]
     Fm, Fs = ms(full_t); Qm, Qs = ms(quo_t)
     speedups = [f / q for f, q in zip(full_t, quo_t)]
     Sm, Ss = st.mean(speedups), st.stdev(speedups)
     print(f"\n==== resource-aware scheduling under REAL WAN latency "
-          f"({len(full_t)} rounds; mean +/- std) ====")
-    for w in ws:
-        m, s = ms(tier_t[w.tier])
-        print(f"  {w.tier:6s} ({w.region:13s}) round : {m:6.0f} +/- {s:4.0f} ms")
+          f"({len(full_t)} rounds over {a.sessions} session(s); mean +/- std) ====")
+    for t in tiers:
+        m, s = ms(tier_t[t])
+        print(f"  {t:6s} ({regions[t]:13s}) round : {m:6.0f} +/- {s:4.0f} ms")
     print(f"full participation (wait for the far edge)   : {Fm:6.0f} +/- {Fs:4.0f} ms")
     print(f"resource-aware quorum={a.quorum} (drop straggler)    : {Qm:6.0f} +/- {Qs:4.0f} ms")
     print(f"critical-path SPEED-UP                        : {Sm:5.1f} +/- {Ss:.1f}x")
