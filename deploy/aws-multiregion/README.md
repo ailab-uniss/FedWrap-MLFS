@@ -51,6 +51,20 @@ bash   deploy/aws-multiregion/teardown.sh       # ALWAYS run when done -> delete
 > `~/.ssh/fedwrap-configb` created by `launch.sh`. Everything is tagged `Project=fedwrap-configb`, so
 > `teardown.sh` removes instances, security groups and key pairs **by tag** in all three regions.
 
+### Reuse a coauthor's already-launched silos (no re-launch)
+
+If someone already ran `launch.sh` on the same AWS account, you can run the experiments against their
+silos instead of spinning up your own. You need the shared `~/.ssh/fedwrap-configb` key (place it at
+that path, `chmod 600`), then, **from your machine**, open your IP and pick up the instance list:
+
+```bash
+bash deploy/aws-multiregion/join_existing.sh    # opens SSH from your IP + rebuilds state.tsv by tag
+python3 deploy/aws-multiregion/run_round.py --rounds 10 --quorum 2   # verify: scheduler speed-up
+python3 deploy/aws-multiregion/run_search.py --pop 16 --evals 160    # verify: distributed search
+```
+
+Do **not** run `teardown.sh` on shared silos unless you agreed to (it removes everyone's, by tag).
+
 ## Cost & teardown
 
 `t3.micro` × 3 ≈ **$0.03/hour** total — negligible, but the instances bill until removed. **Run
@@ -75,4 +89,5 @@ bash   deploy/aws-multiregion/teardown.sh       # ALWAYS run when done -> delete
 | `silo_worker.py` | resident per-silo evaluator (persistent Flower-like client) |
 | `run_round.py` | timed rounds; reports full-vs-quorum speed-up and exact aggregation |
 | `run_search.py` | runs the real federated NSGA-II wrapper search across the silos (search + exact aggregation, end-to-end) |
+| `join_existing.sh` | reuse a coauthor's already-launched silos: open SSH from your IP + rebuild `state.tsv` (no re-launch) |
 | `teardown.sh` | delete all `Project=fedwrap-configb` resources in the 3 regions |
