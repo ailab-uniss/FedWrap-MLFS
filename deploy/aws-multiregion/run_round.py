@@ -28,7 +28,7 @@ SSH = ["ssh", "-i", KEY, "-o", "StrictHostKeyChecking=no", "-o", "BatchMode=yes"
 
 def silos():
     rows = []
-    for ln in (Path(__file__).resolve().parent / "state.tsv").read_text().splitlines():
+    for ln in Path("aws_configb/state.tsv").read_text().splitlines():
         if ln.strip():
             tier, region, iid, ip = ln.split("\t")
             rows.append((tier, region, ip))
@@ -41,7 +41,7 @@ class Worker:
         self.p = subprocess.Popen([*SSH, f"ubuntu@{ip}", "cd ~/fed && python3 silo_worker.py"],
                                   stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                                   stderr=subprocess.DEVNULL, text=True, bufsize=1)
-        self.ready = (self.p.stdout.readline().strip() == "READY")
+        self.ready = self.p.stdout.readline().strip().startswith("READY")
 
     def eval_timed(self, out):
         t = time.time()
@@ -100,33 +100,40 @@ def main():
         print("some worker failed to start"); return
 
     a_round(ws)   # warm-up (excluded)
+    tier_t = {w.tier: [] for w in ws}
     full_t, quo_t, last = [], [], None
     for rnd in range(a.rounds):
         res = a_round(ws)
         order = sorted((res[w.tier]["dt"], w.tier) for w in ws if res[w.tier]["cnt"] is not None)
         if len(order) < len(ws):
             print(f"round {rnd}: a silo failed to reply"); continue
-        full, quo = order[-1][0], order[a.quorum - 1][0]
-        full_t.append(full); quo_t.append(quo); last = res
-        line = "  <  ".join(f"{t} {d * 1000:.0f}ms" for d, t in order)
-        print(f"round {rnd}: {line}   | full={full * 1000:.0f}ms  quorum{a.quorum}={quo * 1000:.0f}ms")
+        for w in ws:
+            tier_t[w.tier].append(res[w.tier]["dt"])
+        full_t.append(order[-1][0]); quo_t.append(order[a.quorum - 1][0]); last = res
 
     for w in ws:
         w.close()
-    if not full_t:
-        print("no successful rounds"); return
-    F, Q = st.mean(full_t) * 1000, st.mean(quo_t) * 1000
-    order = sorted((last[w.tier]["dt"], w.tier) for w in ws)
-    allc = [last[t]["cnt"] for _, t in order]
-    quoc = [last[t]["cnt"] for _, t in order[:a.quorum]]
-    print("\n==== resource-aware scheduling under REAL WAN latency "
-          f"({len(full_t)} rounds, persistent clients) ====")
-    print(f"full participation (wait for the far edge)    : {F:6.0f} ms/round")
-    print(f"resource-aware quorum={a.quorum} (drop the straggler)  : {Q:6.0f} ms/round")
-    print(f"critical-path SPEED-UP                         : {F / Q:5.1f}x")
-    print(f"global macro-F1  --  all {len(allc)} silos         : {macro_f1(allc):.4f}")
-    print(f"global macro-F1  --  quorum {a.quorum} responders     : {macro_f1(quoc):.4f}  "
-          "(exact over the responders, Prop. 1)")
+    if len(full_t) < 2:
+        print("need >= 2 successful rounds for statistics"); return
+
+    def ms(xs):
+        return st.mean(xs) * 1000, st.stdev(xs) * 1000
+
+    allc = [last[w.tier]["cnt"] for w in ws]
+    fastest = [c for _, c in sorted((st.mean(tier_t[w.tier]), last[w.tier]["cnt"]) for w in ws)[:a.quorum]]
+    Fm, Fs = ms(full_t); Qm, Qs = ms(quo_t)
+    speedups = [f / q for f, q in zip(full_t, quo_t)]
+    Sm, Ss = st.mean(speedups), st.stdev(speedups)
+    print(f"\n==== resource-aware scheduling under REAL WAN latency "
+          f"({len(full_t)} rounds; mean +/- std) ====")
+    for w in ws:
+        m, s = ms(tier_t[w.tier])
+        print(f"  {w.tier:6s} ({w.region:13s}) round : {m:6.0f} +/- {s:4.0f} ms")
+    print(f"full participation (wait for the far edge)   : {Fm:6.0f} +/- {Fs:4.0f} ms")
+    print(f"resource-aware quorum={a.quorum} (drop straggler)    : {Qm:6.0f} +/- {Qs:4.0f} ms")
+    print(f"critical-path SPEED-UP                        : {Sm:5.1f} +/- {Ss:.1f}x")
+    print(f"global macro-F1  all {len(allc)} silos / quorum {a.quorum}    : "
+          f"{macro_f1(allc):.4f} / {macro_f1(fastest):.4f}  (exact over responders)")
 
 
 if __name__ == "__main__":
