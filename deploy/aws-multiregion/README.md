@@ -41,7 +41,8 @@ while read -r tier region iid ip; do
 done < deploy/aws-multiregion/state.tsv
 
 bash   deploy/aws-multiregion/deploy_shards.sh  # push one shard + mask + worker to each silo
-python3 deploy/aws-multiregion/run_round.py --rounds 10 --quorum 2   # -> prints the speed-up
+python3 deploy/aws-multiregion/run_round.py  --rounds 10 --quorum 2   # scheduler: full-vs-quorum speed-up
+python3 deploy/aws-multiregion/run_search.py --pop 16 --evals 160     # full federated NSGA-II search across the silos
 
 bash   deploy/aws-multiregion/teardown.sh       # ALWAYS run when done -> deletes everything
 ```
@@ -73,4 +74,5 @@ bash   deploy/aws-multiregion/teardown.sh       # ALWAYS run when done -> delete
 | `deploy_shards.sh` | push shard + mask + `silo_worker.py` to each silo |
 | `silo_worker.py` | resident per-silo evaluator (persistent Flower-like client) |
 | `run_round.py` | timed rounds; reports full-vs-quorum speed-up and exact aggregation |
+| `run_search.py` | runs the real federated NSGA-II wrapper search across the silos (search + exact aggregation, end-to-end) |
 | `teardown.sh` | delete all `Project=fedwrap-configb` resources in the 3 regions |
