@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Join an ALREADY-LAUNCHED Config B deployment (a coauthor ran launch.sh) instead of launching your own:
+# Join an ALREADY-LAUNCHED Config B deployment (silos already running from a prior launch.sh) instead of launching your own:
 #   - open SSH (port 22) from YOUR public IP on the three security groups, and
 #   - rebuild state.tsv (tier region instance-id public-ip) from the running instances, by tag.
 # No re-launch, no shared files. Then fetch the SSH key from SSM and run run_round.py / run_search.py.

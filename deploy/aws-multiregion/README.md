@@ -52,11 +52,11 @@ bash   deploy/aws-multiregion/teardown.sh       # ALWAYS run when done -> delete
 > `~/.ssh/fedwrap-configb` created by `launch.sh`. Everything is tagged `Project=fedwrap-configb`, so
 > `teardown.sh` removes instances, security groups and key pairs **by tag** in all three regions.
 
-### Reuse a coauthor's already-launched silos (no re-launch)
+### Reuse already-running silos (no re-launch)
 
-If someone already ran `launch.sh` on the same AWS account, you can run the experiments against their
-silos instead of spinning up your own. You need the shared `~/.ssh/fedwrap-configb` key (place it at
-that path, `chmod 600`), then, **from your machine**, open your IP and pick up the instance list:
+If the silos are already running on the same AWS account (from a prior `launch.sh`), you can run the
+experiments against them instead of spinning up your own. You need the `~/.ssh/fedwrap-configb` key
+(place it at that path, `chmod 600`), then, **from your machine**, open your IP and pick up the instance list:
 
 ```bash
 bash deploy/aws-multiregion/join_existing.sh    # opens SSH from your IP + rebuilds state.tsv by tag
@@ -64,7 +64,7 @@ python3 deploy/aws-multiregion/run_round.py --sessions 3 --rounds 40 --quorum 2 
 python3 deploy/aws-multiregion/run_search.py --pop 16 --evals 160    # verify: FedAware-NSGA-II distributed
 ```
 
-Do **not** run `teardown.sh` on shared silos unless you agreed to (it removes everyone's, by tag).
+Do **not** run `teardown.sh` on silos you did not launch — it removes every `Project=fedwrap-configb` instance by tag.
 
 ## Teardown
 
@@ -89,5 +89,5 @@ The instances keep running until removed, so **run `teardown.sh` when finished.*
 | `silo_worker.py` | resident per-silo evaluator (persistent Flower-like client) |
 | `run_round.py` | timed rounds; reports full-vs-quorum speed-up and exact aggregation |
 | `run_search.py` | runs the real **FedAware**-NSGA-II search across the silos: federated relevance sketch (from silo statistics) + fed-aware operators + client-stability tie-break + exact aggregation |
-| `join_existing.sh` | reuse a coauthor's already-launched silos: open SSH from your IP + rebuild `state.tsv` (no re-launch) |
+| `join_existing.sh` | reuse already-running silos: open SSH from your IP + rebuild `state.tsv` (no re-launch) |
 | `teardown.sh` | delete all `Project=fedwrap-configb` resources in the 3 regions |
