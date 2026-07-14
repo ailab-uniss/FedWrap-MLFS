@@ -2,7 +2,7 @@
 # Config B: launch 3 EC2 "silos" (edge/server/cloud tiers) in 3 regions for the multi-region
 # WAN-latency test. Everything is tagged Project=fedwrap-configb so teardown.sh removes it by tag.
 # t3.micro x3 = 6 vCPU -> if your On-Demand quota is 5, request an increase or set TYPE=t2.micro.
-# BILLABLE but tiny (~$0.03/hr total). Run teardown.sh when done.
+# Run teardown.sh when done so nothing is left running.
 set -euo pipefail
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT=fedwrap-configb

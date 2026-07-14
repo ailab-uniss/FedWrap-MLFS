@@ -33,7 +33,7 @@ quality loss* — measured on real geographically distributed nodes.
 ## Run it (from the repo root)
 
 ```bash
-bash deploy/aws-multiregion/launch.sh          # launch 3 silos in 3 regions (BILLABLE, ~$0.03/hr)
+bash deploy/aws-multiregion/launch.sh          # launch 3 silos in 3 regions
 
 # wait ~5 min for the bootstrap (installs the workflow), then check it's ready:
 while read -r tier region iid ip; do
@@ -66,10 +66,9 @@ python3 deploy/aws-multiregion/run_search.py --pop 16 --evals 160    # verify: F
 
 Do **not** run `teardown.sh` on shared silos unless you agreed to (it removes everyone's, by tag).
 
-## Cost & teardown
+## Teardown
 
-`t3.micro` × 3 ≈ **$0.03/hour** total — negligible, but the instances bill until removed. **Run
-`teardown.sh` when finished.** To confirm nothing is left:
+The instances keep running until removed, so **run `teardown.sh` when finished.** To confirm nothing is left:
 `aws ec2 describe-instances --filters Name=tag:Project,Values=fedwrap-configb --query 'Reservations[].Instances[].State.Name' --output text` (repeat per region).
 
 ## Customizing
