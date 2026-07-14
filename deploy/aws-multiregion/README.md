@@ -60,7 +60,6 @@ that path, `chmod 600`), then, **from your machine**, open your IP and pick up t
 
 ```bash
 bash deploy/aws-multiregion/join_existing.sh    # opens SSH from your IP + rebuilds state.tsv by tag
-bash deploy/aws-multiregion/deploy_shards.sh    # align the current worker + shards on the silos
 python3 deploy/aws-multiregion/run_round.py --sessions 3 --rounds 40 --quorum 2   # verify: scheduler speed-up (mean±std)
 python3 deploy/aws-multiregion/run_search.py --pop 16 --evals 160    # verify: FedAware-NSGA-II distributed
 ```
