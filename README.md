@@ -7,8 +7,8 @@ ML-kNN on the selected features and returns **only** label-wise TP/FP/FN counter
 server reconstructs the **exact** global micro/macro-F1. Each round exchanges only a feature mask and
 integer counters --- never raw data, predictions, or gradients.
 
-Code accompanying the paper *"FedWrap-MLFS: A Federation-Aware Wrapper Workflow for Multi-Objective
-Multi-Label Feature Selection in the Compute Continuum."*
+Code accompanying the paper *"A Federation-Aware Wrapper Workflow for Multi-Objective Multi-Label
+Feature Selection."*
 
 ## What's here
 

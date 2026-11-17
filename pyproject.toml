@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "fedwrap-mlfs"
 version = "1.0.0"
-description = "FedWrap-MLFS: a federation-aware wrapper workflow for multi-objective multi-label feature selection in the compute continuum"
+description = "FedWrap-MLFS: a federation-aware wrapper workflow for multi-objective multi-label feature selection"
 requires-python = ">=3.10"
 dependencies = [
   "numpy>=1.24",
