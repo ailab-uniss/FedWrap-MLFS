@@ -76,6 +76,14 @@ python scripts/run_scheduling_study.py
 python scripts/run_perf.py
 ```
 
+## Experiments added in the first revision
+
+`scripts/revision/` contains the experiments added in the first revision of the manuscript: the main
+comparison over ten independent train/test partitions, the wrapper and federation-aware effect
+decomposition, complete searches on the Flower/Ray runtime (per-mask and per-generation rounds), the
+search with secure aggregation of every server-visible quantity, and outlier removal under secure
+aggregation. See **[`scripts/revision/README.md`](scripts/revision/README.md)** for the commands.
+
 ## Run the federated workflow (local or HPC)
 
 The distributable federated-evaluation round is packaged as a portable CWL workflow that runs

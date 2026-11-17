@@ -174,12 +174,22 @@ def nsga2(
     ) = None,
     tie_breaker: Callable[[Individual], float] | None = None,
     stability_blend: float = 0.0,
+    prefetch: Callable[[list[object]], None] | None = None,
 ) -> list[Individual]:
-    """Run NSGA-II and return the final population."""
+    """Run NSGA-II and return the final population.
+
+    ``prefetch`` (optional) receives every batch of genomes immediately before the batch is
+    evaluated one by one (the initial population, then the offspring of each generation). A
+    federated evaluator can use it to dispatch the whole batch in a single round and cache the
+    results; the subsequent ``evaluate`` calls then hit the cache. It does not consume random
+    numbers, so the search trajectory is unchanged.
+    """
     rng = np.random.default_rng(seed)
 
     # ── Initialise ────────────────────────────────────────────────
     genomes = init_population(rng)
+    if prefetch is not None:
+        prefetch(list(genomes))
     pop: list[Individual] = []
     eval_count = 0
     for g in genomes:
@@ -238,6 +248,8 @@ def nsga2(
                 child_genomes.append(c)
 
         # ── Evaluate offspring ────────────────────────────────────
+        if prefetch is not None:
+            prefetch(list(child_genomes))
         for c in child_genomes:
             obj, meta = evaluate(c)
             offspring.append(Individual(genome=c, objectives=obj, meta=meta))
