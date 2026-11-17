@@ -1,7 +1,7 @@
 """Verify the CWL/StreamFlow workflow reproduces the in-process simulator exactly (cluster deliverable ii).
 
 Runs the SAME per-client evaluation IN-PROCESS on the shards (no containers, no JSON serialization) and
-aggregates the label-wise counts, then compares the global macro/micro-F1 against the workflow's
+aggregates the label-wise counts, then compares the federation-level macro/micro-F1 against the workflow's
 ``global.json`` (produced by running the CWL workflow on the same shards + mask). Because the counters
 are integers, an exact match (max |delta| < 1e-9) confirms the distributed cross-node execution is
 numerically identical to the fast simulator -- the claim the HPC-cluster section needs to substantiate.

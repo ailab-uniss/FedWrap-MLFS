@@ -5,7 +5,7 @@ It exposes the same surface used by the experiment runners --
 ``_cache`` keyed by ``mask.tobytes()`` -- but computes the objectives via
 *federated evaluation*: the mask is broadcast to virtual clients, each returns
 label-wise TP/FP/FN on its local validation set, and the server aggregates them
-into GLOBAL micro/macro F1 (never an average of local F1 scores).
+into FEDERATION-LEVEL micro/macro F1 (never an average of local F1 scores).
 
 Evaluations are cached (elitism-safe, persistent, keyed by the mask) and may be promoted by the
 caller into the Pareto archive.
@@ -43,7 +43,7 @@ class FederatedConfig:
     # natural-silo group vectors (per-sample), optional
     groups_train: Any = None
     groups_val: Any = None
-    # objective aggregation: "global" reconstructs exact global F1 from summed counts (default);
+    # objective aggregation: "global" reconstructs exact federation-level F1 from summed counts (default);
     # "local_avg" optimizes the (biased) mean of per-client F1 -- the Local-avg wrapper baseline.
     objective_aggregation: str = "global"
 

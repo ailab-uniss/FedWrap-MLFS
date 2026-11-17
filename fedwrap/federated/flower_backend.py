@@ -3,7 +3,7 @@
 The federated round IS the FedWrap-MLFS evaluation step: the server broadcasts a feature
 mask, each client trains a local ML-kNN on the selected features and returns ONLY the
 label-wise sufficient statistics (TP/FP/FN), and the server aggregates them into the
-exact global micro/macro-F1. Implementing this on Flower (rather than a hand-rolled loop)
+exact federation-level micro/macro-F1. Implementing this on Flower (rather than a hand-rolled loop)
 gives:
 
   * a deployable, standards-based federated runtime (real client/server messaging),
@@ -12,7 +12,7 @@ gives:
     (flwr.server.strategy.DifferentialPrivacy*), and
   * reproducible, inspectable communication accounting.
 
-We validate that one Flower round reproduces the exact global F1 of the vectorized
+We validate that one Flower round reproduces the exact federation-level F1 of the vectorized
 simulator (`FederatedEvaluator`); the large-scale evolutionary inner loop then uses the
 equivalent fast simulator, with Flower providing the deployment-realistic protocol,
 communication measurements, and the privacy layer.
@@ -48,7 +48,7 @@ def run_federated_eval_flower(
 ) -> dict[str, Any]:
     """Evaluate one feature mask over virtual clients using a real Flower simulation.
 
-    Returns the aggregated global stats/metrics; numerically identical to the
+    Returns the aggregated federation-level stats/metrics; numerically identical to the
     FederatedEvaluator (validated in tests). One Flower round = one mask evaluation.
     """
     import flwr as fl

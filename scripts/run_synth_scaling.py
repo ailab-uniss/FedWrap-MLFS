@@ -6,7 +6,7 @@ signal sparsity change. Metrics per point:
   - FedWrap macro/micro-F1 (val-selected at matched sparsity)
   - fed-rank / all-features / random baselines at matched sparsity
   - FMLFS feasibility/time (O(D^2); flags when it would exhaust memory)
-  - local-F1 averaging bias = global macro - mean-of-local macro for the SAME mask
+  - local-F1 averaging bias = federation-level macro - mean-of-local macro for the SAME mask
   - worst-client macro
   - search wall-time, #full evaluations, uplink communication (3L counters)
 
@@ -49,7 +49,7 @@ def setk(d, dot, v):
 
 
 def per_client_and_global(ev, mask):
-    """global macro and mean/worst per-client local-support macro for a mask."""
+    """federation-level macro and mean/worst per-client local-support macro for a mask."""
     TP = FP = FN = None; per = []
     for c in ev.clients:
         r = c.evaluate_mask(np.asarray(mask, bool), mode="full")

@@ -10,8 +10,8 @@ dominate wall-clock time.
 This module provides the scheduling layer that the workflow uses to stay efficient under tier
 heterogeneity, and the machinery to evaluate it. Two observations make it clean:
 
-* The global objective is a *sum* of per-client sufficient statistics. Aggregating over any subset
-  of responding clients therefore yields the **exact** global micro/macro-F1 *for that subset*---
+* The federation-level objective is a *sum* of per-client sufficient statistics. Aggregating over any subset
+  of responding clients therefore yields the **exact** federation-level micro/macro-F1 *for that subset*---
   there is no imputation and no bias in the metric itself, only the sampling variance of which
   clients participated. ``aggregate_subset`` returns exactly this.
 * Because the metric is a deterministic function of summed counts, a scheduling policy can be
@@ -64,7 +64,7 @@ class TierModel:
 
 
 def aggregate_subset(tp: np.ndarray, fp: np.ndarray, fn: np.ndarray, idx: np.ndarray) -> dict:
-    """Exact global micro/macro-F1 over the responding subset ``idx`` of clients.
+    """Exact federation-level micro/macro-F1 over the responding subset ``idx`` of clients.
 
     ``tp/fp/fn`` are (K, L) per-client label-wise counts; summing the rows in ``idx`` and scoring is
     identical to scoring the concatenation of those clients' predictions (no imputation)."""

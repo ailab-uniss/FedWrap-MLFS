@@ -5,8 +5,8 @@ The only quantity that leaves a client is the label-wise count vector
 (TP, FP, FN), so we can release it under (eps, delta)-DP with the Gaussian
 mechanism. One record affects at most one of {TP,FP,FN} per label, so the L2
 sensitivity of the 3L-vector is sqrt(L). We add calibrated Gaussian noise to the
-aggregated counts, recompute global macro/micro-F1, and trace the
-privacy--utility curve. Communication is unchanged (still 3L numbers/round)."""
+aggregated counts, recompute federation-level macro/micro-F1, and trace the
+privacy--utility curve. Communication is unchanged (still 3L numbers per evaluated mask)."""
 from __future__ import annotations
 import sys, csv
 import numpy as np

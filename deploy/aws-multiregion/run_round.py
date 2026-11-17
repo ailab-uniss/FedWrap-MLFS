@@ -8,7 +8,7 @@ resource-aware SCHEDULER speed-up:
   * full participation  -> wait for the slowest silo (the far edge in Tokyo);
   * resource-aware quorum=K' -> proceed once the fastest K' answer (drop the WAN straggler).
 Aggregating the responders' integer counters is EXACT for that subset (Prop. 1), so the quorum result
-is a valid global F1 at a fraction of the round time. Real WAN latency, measured. Run deploy_shards.sh
+is a valid federation-level F1 at a fraction of the round time. Real WAN latency, measured. Run deploy_shards.sh
 and push silo_worker.py first (deploy_worker below).
 """
 import argparse
@@ -133,7 +133,7 @@ def main():
     print(f"full participation (wait for the far edge)   : {Fm:6.0f} +/- {Fs:4.0f} ms")
     print(f"resource-aware quorum={a.quorum} (drop straggler)    : {Qm:6.0f} +/- {Qs:4.0f} ms")
     print(f"critical-path SPEED-UP                        : {Sm:5.1f} +/- {Ss:.1f}x")
-    print(f"global macro-F1  all {len(allc)} silos / quorum {a.quorum}    : "
+    print(f"federation-level macro-F1  all {len(allc)} silos / quorum {a.quorum}    : "
           f"{macro_f1(allc):.4f} / {macro_f1(fastest):.4f}  (exact over responders)")
 
 

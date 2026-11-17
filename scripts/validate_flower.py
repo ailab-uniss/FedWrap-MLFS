@@ -2,7 +2,7 @@
 
 Build the ECG natural-silo federation in-process, extract each client's exact shards, run ONE Flower
 round on the deployed faport mask through run_federated_eval_flower, and compare the aggregated
-TP/FP/FN and global macro/micro-F1 against the in-process evaluator on the identical mask and data.
+TP/FP/FN and federation-level macro/micro-F1 against the in-process evaluator on the identical mask and data.
 """
 import sys
 import numpy as np

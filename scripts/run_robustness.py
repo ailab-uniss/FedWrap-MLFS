@@ -39,9 +39,9 @@ def global_macro(counts):
 
 
 def corrupt(counts, f, rng):
-    """f Byzantine clients report adversarial counts that minimize the global score: no true
+    """f Byzantine clients report adversarial counts that minimize the federation-level score: no true
     positives, and a large false-positive/false-negative flood on every label, sized to dominate
-    the clean aggregate so global precision and recall collapse."""
+    the clean aggregate so federation-level precision and recall collapse."""
     L = counts[0][0].size
     clean_mass = sum((c[0] + c[1] + c[2]).sum() for c in counts)
     big = float(max(1.0, clean_mass / L))          # per-label flood comparable to total clean mass

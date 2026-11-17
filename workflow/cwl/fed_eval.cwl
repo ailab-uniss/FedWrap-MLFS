@@ -5,7 +5,7 @@ label: "One FedWrap-MLFS federated evaluation round: scatter a mask to client si
 doc: |
   The distributable unit of the FedWrap-MLFS workflow (stages S2--S3 of the paper): the server
   broadcasts one feature mask; each client silo trains a local ML-kNN on the selected features and
-  returns only its label-wise TP/FP/FN counters; the server sums them into the exact global
+  returns only its label-wise TP/FP/FN counters; the server sums them into the exact federation-level
   micro/macro-F1. The CWL is identical for local (Docker) and HPC (Singularity/SLURM) execution;
   only the StreamFlow deployment binding changes.
 

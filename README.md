@@ -4,8 +4,10 @@ A **federated wrapper** for multi-objective **multi-label feature selection**, c
 workflow over the compute continuum. A central evolutionary optimizer (FedAware-NSGA-II) orchestrates
 many distributed wrapper evaluations across data-owning silos; each client trains a local multi-label
 ML-kNN on the selected features and returns **only** label-wise TP/FP/FN counters, from which the
-server reconstructs the **exact** global micro/macro-F1. Each round exchanges only a feature mask and
-integer counters --- never raw data, predictions, or gradients.
+server reconstructs the **exact** federation-level micro/macro-F1. Each mask
+evaluation exchanges only a feature mask and integer counters --- never raw data, predictions, or
+gradients. FedAware-NSGA-II additionally uses a one-time sketch of aggregate feature and label
+statistics; the privacy properties of the protocol and their limits are stated in Section 3.6 of the paper.
 
 Code accompanying the paper *"A Federation-Aware Wrapper Workflow for Multi-Objective Multi-Label
 Feature Selection."*
@@ -16,7 +18,7 @@ Feature Selection."*
 |---|---|
 | `fedwrap/` | the framework: federated evaluator, FedAware-NSGA-II (relevance warm start + guided mutation + client-stability), filters, metrics, scheduling |
 | `fedwrap/federated/` | federated evaluation protocol, Flower backend, resource-aware scheduling |
-| `workflow/` | the executable CWL workflow (one federated evaluation round) + Docker/StreamFlow configs (see `workflow/README.md`) |
+| `workflow/` | the executable CWL workflow (one evaluation round: one mask sent to all silos) + Docker/StreamFlow configs (see `workflow/README.md`) |
 | `scripts/` | experiment runners (real datasets, synthetic D-law, ablation, scheduling, performance) |
 | `data/fed_real/` | natural-silo federations (ECG, eICU, ExtraSensory), obtained separately; synthetic via `scripts/synth_scaling.py` |
 

@@ -1,7 +1,7 @@
 """Server aggregation step of the FedWrap-MLFS workflow.
 
 Sums the per-client label-wise counters returned by the client steps and reconstructs the EXACT
-global micro/macro-F1 (identical to scoring the concatenation of the clients' predictions). Because
+federation-level micro/macro-F1 (identical to scoring the concatenation of the clients' predictions). Because
 the objective is a sum of counters, aggregating over whichever clients responded is exact for that
 subset---the property the resource-aware scheduler relies on.
 

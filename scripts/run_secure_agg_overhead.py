@@ -1,7 +1,7 @@
 """Secure-aggregation prototype: verify exactness and measure overhead on the real eICU federation.
 
 (1) Exactness: aggregate the per-client TP/FP/FN of the deployed faport masks both plainly and through
-    additive pairwise masking; the reconstructed global macro/micro-F1 must be bitwise identical.
+    additive pairwise masking; the reconstructed federation-level macro/micro-F1 must be bitwise identical.
 (2) Overhead: time one secure-aggregation round per generation (the whole population's count vectors
     batched into a single masked exchange) against plain summation, over a realistic number of
     generations, and report the added latency and the communication footprint.

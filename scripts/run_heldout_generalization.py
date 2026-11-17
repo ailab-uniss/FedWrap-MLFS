@@ -10,7 +10,7 @@ Protocol per federation:
        - the SEEN (optimization) silos, and
        - the HELD-OUT silos, which never influenced the search.
      Each silo trains its own ML-kNN on the selected features and tests on its own split;
-     global macro-F1 is the count-aggregated exact objective over the silo group.
+     federation-level macro-F1 is the count-aggregated exact objective over the silo group.
 A small seen->held-out gap means the selected subset is genuinely informative for the
 federation, not overfitted to the participating silos.
 
@@ -83,7 +83,7 @@ def best_mask(run_npz):
 
 
 def macro_on_silos(ds, silo_set, mask, nclients_hint):
-    """Global (count-aggregated) macro-F1 of a fixed mask over the given silos, under the
+    """Federation-level (count-aggregated) macro-F1 of a fixed mask over the given silos, under the
     deployment protocol (each silo trains its own ML-kNN locally and tests on its split)."""
     base = Path(f"data/fed_real/{ds}/fold0")
     xtr, ytr = _load_npz_any(base / "trainval.npz")

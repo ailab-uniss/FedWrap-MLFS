@@ -7,7 +7,7 @@ This runs the framework's actual method, not a simplified one:
   * filter-seeded + relevance warm-start initialization;
   * relevance-guided / sparsity-preserving mutation (fedwrap.fedaware.FedAwareVariation);
   * client-stability tie-break in selection;
-  * every candidate evaluated by summing the silos' integer counters into the exact global objective.
+  * every candidate evaluated by summing the silos' integer counters into the exact federation-level objective.
 
 The search engine is the real fedwrap.nsga2; only the evaluator is remote (dispatch over SSH to the
 silos). Run deploy_shards.sh first.
@@ -200,7 +200,7 @@ def main():
     print(f"one-time relevance sketch R                : {R.shape} (aggregated from silo statistics)")
     print(f"evaluations (federated, exact aggregation) : {n_eval[0]}  in  {dt:.0f} s")
     print(f"best subset                                : {int(bmask.sum())}/{D} features")
-    print(f"global macro-F1 of best subset             : {1.0 - float(best.objectives[0]):.4f}")
+    print(f"federation-level macro-F1 of best subset             : {1.0 - float(best.objectives[0]):.4f}")
     print(f"Pareto front (n_features, macro-F1)         : {front}")
 
 

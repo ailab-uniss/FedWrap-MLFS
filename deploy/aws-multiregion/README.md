@@ -15,8 +15,8 @@ wide-area latency** — no `netem` injection. Each silo runs the workflow's own 
 
 - **full participation** (wait for the far Tokyo edge): **~240 ms/round**
 - **resource-aware quorum=2** (proceed without the straggler): **~40 ms/round**
-- **critical-path speed-up: 6.2×** (mean over 120 rounds = three independent 40-round sessions; ±0.6×),
-  with the aggregation still **exact** over the responders (global macro-F1 0.3918 on all 3 silos vs
+- **critical-path speed-up: 6.2×** (mean over 120 rounds of one mask each = three independent 40-round sessions; ±0.6×),
+  with the aggregation still **exact** over the responders (federation-level macro-F1 0.3918 on all 3 silos vs
   0.3773 on the fastest 2 — Prop. 1). `run_round.py` prints per-tier / full / quorum mean ± std.
 
 This is the paper's claim — *resource-aware partial participation cuts critical-path time with limited

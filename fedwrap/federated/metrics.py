@@ -1,7 +1,7 @@
 """Federated metric aggregation from label-wise sufficient statistics.
 
 The server never sees raw data: clients return per-label ``TP``, ``FP``, ``FN``
-counts on their local validation set. The server sums them and computes *global*
+counts on their local validation set. The server sums them and computes *federation-level*
 micro-F1 and macro-F1. We must NOT average
 local F1 scores, because that biases the estimate under quantity- and label-skew.
 """
@@ -76,7 +76,7 @@ class AggregatedStats:
 
 
 class FederatedMetricsAggregator:
-    """Aggregates per-client label-wise statistics into global metrics."""
+    """Aggregates per-client label-wise statistics into federation-level metrics."""
 
     def __init__(self, n_labels: int) -> None:
         self.n_labels = int(n_labels)

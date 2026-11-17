@@ -3,7 +3,7 @@ Run one selector variant on a real natural-silo federation, writing val-selected
 populations to runs/plain_fed/{ds}_{method}_s{seed} for the 10-seed main table.
 
   method = fedaware : FedAware-NSGA-II (relevance sketch + hard-label mutation + client stability)
-  method = base     : plain NSGA-II wrapper over flat masks, exact global objective
+  method = base     : plain NSGA-II wrapper over flat masks, exact federation-level objective
   method = localavg : same plain NSGA-II but the search optimizes the (biased) mean of per-client F1
 
 All three optimize binary masks under the same evaluator/budget/stopping rule; the difference is the

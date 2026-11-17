@@ -2,7 +2,7 @@
 
 For each dataset and each of the 10 fawarm30 seeds, take the val-selected deployed mask and the
 matched fed-rank mask, and compute the per-client local-support macro-F1 distribution (F1 averaged
-over the labels each silo actually observes). Report the seed-averaged global macro and the
+over the labels each silo actually observes). Report the seed-averaged federation-level macro and the
 mean/std/worst/tenth-percentile of the client distribution.
 """
 import sys, glob
@@ -25,7 +25,7 @@ def valbest(z):
 
 
 def dist(ev, mask):
-    """global macro + per-client local-support macro-F1 list for a mask."""
+    """federation-level macro + per-client local-support macro-F1 list for a mask."""
     TP = FP = FN = None; per = []
     for c in ev.clients:
         r = c.evaluate_mask(np.asarray(mask, bool), mode="full")
@@ -66,7 +66,7 @@ def main():
         for meth, vals in rows.items():
             a = np.array(vals)  # cols: gmacro, mean, std, worst, p10
             mu = a.mean(0)
-            print(f"  {meth:9s} global={mu[0]:.3f} mean={mu[1]:.3f} std={mu[2]:.3f} "
+            print(f"  {meth:9s} fed-level={mu[0]:.3f} mean={mu[1]:.3f} std={mu[2]:.3f} "
                   f"worst={mu[3]:.3f} P10={mu[4]:.3f}")
 
 

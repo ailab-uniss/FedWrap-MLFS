@@ -9,7 +9,7 @@ ring Z_{2^64} so cancellation is exact:
 
 For any pair (i,j) the two masks are added by one client and subtracted by the other, so
 ``sum_i masked_i = sum_i count_i (mod 2^64)``. Because the true total is far below 2^64, the modular
-sum equals the integer sum exactly---hence the reconstructed global TP/FP/FN, and the macro/micro-F1
+sum equals the integer sum exactly---hence the reconstructed federation-level TP/FP/FN, and the macro/micro-F1
 computed from them, are *bitwise identical* to the non-secure protocol. Each masked vector on its own
 is uniform over the ring, so the coordinator learns nothing about an individual client beyond the sum.
 

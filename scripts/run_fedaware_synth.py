@@ -5,7 +5,7 @@ For each sweep point and seed we run TWO selectors at full evaluation budget:
   base    : plain federated NSGA-II wrapper (federation-naive search)
   fedaware: FedAware-NSGA-II (stability tie-break + disagreement-
             guided mutation on) -- the headline configuration
-and record global macro-F1 and worst-client macro-F1 for each, plus fed-rank / all-features
+and record federation-level macro-F1 and worst-client macro-F1 for each, plus fed-rank / all-features
 references at matched sparsity. Sweeps that stress the federation (K, non-IID alpha) are where the
 federation-aware operators are expected to help.
 
